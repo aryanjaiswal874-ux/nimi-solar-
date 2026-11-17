@@ -226,6 +226,7 @@ const syncDatabase = async () => {
                 { name: 'week_offs', type: Sequelize.JSON },
                 { name: 'sunday_in_time', type: Sequelize.TIME },
                 { name: 'sunday_out_time', type: Sequelize.TIME },
+                { name: 'employee_id', type: Sequelize.STRING },
             ];
 
             for (const col of userColumnsToAdd) {

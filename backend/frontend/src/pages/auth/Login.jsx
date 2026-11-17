@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Loader2, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, User, Eye, EyeOff, BadgeCheck, IdCard } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { company } from "../../config/company";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isWorkerLogin, setIsWorkerLogin] = useState(false);
   const { login, user: loggedInUser } = useAuth();
   const navigate = useNavigate();
 
@@ -28,15 +29,24 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
+    if (!identifier.trim()) {
+      setError(isWorkerLogin ? "Please enter your Employee ID." : "Please enter your email address.");
+      return;
+    }
+
+    if (isWorkerLogin && identifier.includes('@')) {
+      setError("Workers must login with Employee ID, not email.");
+      return;
+    }
+
+    if (!isWorkerLogin && !identifier.includes('@')) {
+      setError("Admins must login with email address.");
       return;
     }
 
     setIsLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(identifier, password);
       if (["admin", "super_admin", "employee"].includes(user.role)) {
         navigate("/admin/dashboard");
       } else {
@@ -81,20 +91,51 @@ const Login = () => {
             </p>
           </div>
 
+          {/* Login Mode Toggle */}
+          <div className="mb-6 p-1 bg-slate-100 rounded-lg flex">
+            <button
+              type="button"
+              onClick={() => { setIsWorkerLogin(false); setError(""); }}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all ${
+                !isWorkerLogin
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <BadgeCheck size={14} className="inline mr-1.5" /> Admin Login
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsWorkerLogin(true); setError(""); }}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all ${
+                isWorkerLogin
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              <IdCard size={14} className="inline mr-1.5" /> Worker Login
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Email Address
+                {isWorkerLogin ? "Employee ID" : "Email Address"}
               </label>
               <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                {isWorkerLogin ? (
+                  <IdCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                ) : (
+                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                )}
                 <input
                   required
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder={isWorkerLogin ? "EMP001" : "name@company.com"}
                   className="erp-input pl-10 bg-slate-50 border-slate-200 focus:bg-white"
+                  autoComplete={isWorkerLogin ? "off" : "email"}
                 />
               </div>
             </div>

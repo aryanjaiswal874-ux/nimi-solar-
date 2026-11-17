@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Support postgres (Render), mariadb, mysql
-const DIALECT = process.env.DB_DIALECT || "postgres";
+const DIALECT = process.env.DB_DIALECT || "mariadb";
 
 let sequelize;
 

@@ -6,6 +6,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
         full_name: "",
         email: "",
         mobile: "",
+        employee_id: "",
         designation: "Select",
         role: "user",
         password: "",
@@ -72,6 +73,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
                 full_name: user.full_name || "",
                 email: user.email || "",
                 mobile: user.mobile || "",
+                employee_id: user.employee_id || "",
                 designation: user.designation ? (isStandardDesignation ? user.designation : "Other") : "Select",
                 role: user.role || "user",
                 password: "",
@@ -144,6 +146,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
             data.append("full_name", formData.full_name);
             data.append("email", formData.email);
             data.append("mobile", formData.mobile);
+            data.append("employee_id", formData.employee_id);
             data.append("designation", finalDesignation);
             data.append("role", formData.role);
             data.append("is_active", formData.is_active);
@@ -299,6 +302,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
                                     <InputField label="Full Name" name="full_name" placeholder="Suraj Kumar" required />
                                     <InputField label="Email Address" name="email" type="email" placeholder="example@mail.com" required />
                                     <InputField label="Mobile Number" name="mobile" placeholder="+91 0000000000" required />
+                                    <InputField label="Employee ID" name="employee_id" placeholder="EMP001" />
                                     <InputField label="Age" name="age" type="number" placeholder="25" />
                                     <InputField label="Gender" name="gender" type="select" options={["Select", "Male", "Female", "Other"]} />
                                     <InputField label="Qualification" name="qualification" placeholder="B.Tech" />

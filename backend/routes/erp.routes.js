@@ -1,5 +1,5 @@
 import express from "express";
-import { protect as authenticate, adminOnly as authorizeAdmin } from "../middlewares/authMiddleware.js";
+import { protect as authenticate, adminOnly as authorizeAdmin, workerOnly, adminOrWorker } from "../middlewares/authMiddleware.js";
 import { sendWhatsAppText } from "../utils/whatsappService.js";
 import {
     getOfficeSettings, updateOfficeSettings,
@@ -189,7 +189,7 @@ router.get("/holidays/check-tomorrow", checkTomorrowHoliday);
  *       403:
  *         description: Late entry not allowed
  */
-router.post("/attendance/in", authenticate, markIn);
+router.post("/attendance/in", authenticate, workerOnly, markIn);
 
 /**
  * @swagger
@@ -205,15 +205,15 @@ router.post("/attendance/in", authenticate, markIn);
  *       403:
  *         description: Early exit not allowed
  */
-router.post("/attendance/out", authenticate, markOut);
-router.post("/attendance/break", authenticate, takeBreak);
-router.post("/attendance/resume", authenticate, resumeWork);
+router.post("/attendance/out", authenticate, workerOnly, markOut);
+router.post("/attendance/break", authenticate, workerOnly, takeBreak);
+router.post("/attendance/resume", authenticate, workerOnly, resumeWork);
 
 /**
  * @swagger
  * /api/erp/attendance/history:
  *   get:
- *     summary: Get attendance history
+ *     summary: Get attendance history (admin can view all, workers see own)
  *     tags: [ERP]
  *     security:
  *       - bearerAuth: []
@@ -231,8 +231,8 @@ router.post("/attendance/resume", authenticate, resumeWork);
  *       200:
  *         description: List of attendances
  */
-router.get("/attendance/history", authenticate, getEmployeeAttendance);
-router.get("/attendance/daily", authenticate, getDailyAttendanceSummary);
+router.get("/attendance/history", authenticate, adminOrWorker, getEmployeeAttendance);
+router.get("/attendance/daily", authenticate, authorizeAdmin, getDailyAttendanceSummary);
 router.get("/attendance/mark-absent", authenticate, authorizeAdmin, markAbsent);
 router.get("/attendance/mark-absent-all", markAllAbsent); // Public for CRON
 
@@ -270,8 +270,8 @@ router.get("/attendance/mark-absent-all", markAllAbsent); // Public for CRON
  *         description: ToDo created
  */
 // --- ToDo ---
-router.get("/todo", authenticate, getMyToDo);
-router.post("/todo", authenticate, createToDo);
+router.get("/todo", authenticate, workerOnly, getMyToDo);
+router.post("/todo", authenticate, workerOnly, createToDo);
 
 /**
  * @swagger
@@ -298,9 +298,9 @@ router.post("/todo", authenticate, createToDo);
  *       200:
  *         description: Updated
  */
-router.put("/todo/:id", authenticate, updateToDoStatus);
-router.put("/todo/:id/edit", authenticate, updateToDoTask);
-router.delete("/todo/:id", authenticate, deleteToDo);
+router.put("/todo/:id", authenticate, workerOnly, updateToDoStatus);
+router.put("/todo/:id/edit", authenticate, workerOnly, updateToDoTask);
+router.delete("/todo/:id", authenticate, workerOnly, deleteToDo);
 
 /**
  * @swagger
@@ -323,7 +323,7 @@ router.delete("/todo/:id", authenticate, deleteToDo);
  *       201:
  *         description: Report added
  *   get:
- *     summary: Get work reports
+ *     summary: Get work reports (admin can view all, workers see own)
  *     tags: [ERP]
  *     security:
  *       - bearerAuth: []
@@ -339,9 +339,9 @@ router.delete("/todo/:id", authenticate, deleteToDo);
  *         description: Work reports list
  */
 // --- Work Reports ---
-router.post("/work-report", authenticate, createWorkReport);
-router.get("/work-report", authenticate, getWorkReports);
-router.get("/work-report/dates", authenticate, getWorkReportDates);
+router.post("/work-report", authenticate, workerOnly, createWorkReport);
+router.get("/work-report", authenticate, adminOrWorker, getWorkReports);
+router.get("/work-report/dates", authenticate, workerOnly, getWorkReportDates);
 
 /**
  * @swagger
@@ -426,7 +426,7 @@ router.get("/attendance/monthly-summary", authenticate, authorizeAdmin, getMonth
 router.put("/payroll/config/:id", authenticate, superAdminOnly, updatePayrollConfig);
 
 // --- Location Tracking (Enhanced - From DigiTrand Style) ---
-router.post("/location-tracking/record", authenticate, recordLocation);
+router.post("/location-tracking/record", authenticate, workerOnly, recordLocation);
 router.get("/location-tracking/live", authenticate, superAdminOnly, getLiveLocations);
 router.get("/location-tracking/history/:employee_id/date/:date", authenticate, superAdminOnly, getHistoryByEmployee);
 /**

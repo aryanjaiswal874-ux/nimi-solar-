@@ -327,6 +327,9 @@ const UserManagement = () => {
           <div>
             <div className="font-bold text-slate-900">{row.full_name}</div>
             <div className="text-[10px] text-slate-400 font-medium">{row.email}</div>
+            {row.employee_id && (
+              <div className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">ID: {row.employee_id}</div>
+            )}
           </div>
         </div>
       )
@@ -575,6 +578,12 @@ const UserManagement = () => {
                   <Shield size={12} className="text-blue-500" /> Employment Details
                 </p>
                 <div className="space-y-4">
+                  {selectedUser.employee_id && (
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase">Employee ID</p>
+                      <p className="text-sm font-black text-blue-600">{selectedUser.employee_id}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-[9px] font-bold text-slate-500 uppercase">System Role</p>
                     <p className="text-sm font-black text-slate-800 capitalize">{selectedUser.role.replace('_', ' ')}</p>

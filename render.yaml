@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: namman-erp
+    name: nimi-erp
     env: node
     region: singapore
     plan: free
@@ -21,7 +21,7 @@ services:
       # Database (auto-filled from database below)
       - key: DATABASE_URL
         fromDatabase:
-          name: namman-db
+          name: nimi-db
           property: connectionString
 
       # Auth
@@ -30,29 +30,29 @@ services:
 
       # Company Branding
       - key: COMPANY_NAME
-        value: "Namman Dental Hospital pvt ltd"
+        value: "NIMI PRIVATE LIMITED"
       - key: COMPANY_SHORT_NAME
         value: ERP
       - key: COMPANY_TAGLINE
         value: "Business Management Platform"
       - key: COMPANY_ADDRESS
-        value: "Namman Dental Hospital, V-26, Geetanjali Colony, Shankar Nagar, Raipur, Chhattisgarh 492007"
+        value: "NIMI PRIVATE LIMITED, Registered Office Address"
       - key: COMPANY_CITY
-        value: Raipur
+        value: City
       - key: COMPANY_STATE
-        value: Chhattisgarh
+        value: State
       - key: COMPANY_PINCODE
-        value: "492007"
+        value: "PINCODE"
       - key: COMPANY_PHONE
-        value: "+91-7000277736"
+        value: "+91-XXXXXXXXXX"
       - key: COMPANY_EMAIL
-        value: info@nammandental.com
+        value: info@nimipl.com
       - key: COMPANY_WEBSITE
-        value: https://nammandental.com
+        value: https://nimipl.com
       - key: COMPANY_WHATSAPP
-        value: "+91-7000277736"
+        value: "+91-XXXXXXXXXX"
       - key: COMPANY_LOGO_URL
-        value: https://nammandental.com/logo.png
+        value: https://nimipl.com/logo.png
 
       # Frontend URLs (UPDATE AFTER VERCEL DEPLOY)
       - key: FRONTEND_URL
@@ -62,21 +62,21 @@ services:
 
       # Email / SMTP
       - key: SMTP_HOST
-        value: nammanhospital@gmail.com
+        value: info@nimipl.com
       - key: SMTP_PORT
         value: "465"
       - key: SMTP_USER
-        value: nammanhospital@gmail.com
+        value: info@nimipl.com
       - key: SMTP_PASS
-        value: namman@2015
+        value: nimi@2026
       - key: DEFAULT_FROM_EMAIL
-        value: nammanhospital@gmail.com
+        value: info@nimipl.com
 
       # Certificate Signatory
       - key: CERT_SIGNATORY_NAME
-        value: "DR. Manoj Agrawal"
+        value: "NIMI PRIVATE LIMITED Authorized Signatory"
       - key: CERT_SIGNATORY_ROLE
-        value: "DR. MANOJ AGRAWAL (MDS, Oral & Maxillofacial Surgery)"
+        value: "NIMI PRIVATE LIMITED Authorized Signatory"
 
       # Puppeteer - Render has chromium
       - key: PUPPETEER_EXECUTABLE_PATH
@@ -85,8 +85,8 @@ services:
         value: "true"
 
 databases:
-  - name: namman-db
-    databaseName: erp_namman
+  - name: nimi-db
+    databaseName: erp_nimi
     user: erp_user
     plan: free
     region: singapore

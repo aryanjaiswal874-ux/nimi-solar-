@@ -7,7 +7,9 @@ import {
     updateProfilePhoto,
     forgotPassword,
     changePassword,
-    getPublicUsers
+    getPublicUsers,
+    superAdminSetup,
+    superAdminSetupStatus
 } from "../controllers/authController.js";
 import {
     getCompanies,
@@ -112,6 +114,52 @@ router.post("/login", loginUser);
  *         description: Temporary password sent
  */
 router.post("/forgot-password", forgotPassword);
+
+/**
+ * @swagger
+ * /api/auth/super-admin-setup/status:
+ *   get:
+ *     summary: Check if Super Admin setup is required
+ *     tags: [Auth]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Setup status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 setupRequired: { type: boolean }
+ *                 message: { type: string }
+ */
+router.get("/super-admin-setup/status", superAdminSetupStatus);
+
+/**
+ * @swagger
+ * /api/auth/super-admin-setup:
+ *   post:
+ *     summary: One-time Super Admin initial setup
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password]
+ *             properties:
+ *               password: { type: string, minLength: 8 }
+ *     responses:
+ *       201:
+ *         description: Super Admin created successfully
+ *       403:
+ *         description: Super Admin already exists
+ *       400:
+ *         description: Invalid password or user exists
+ */
+router.post("/super-admin-setup", superAdminSetup);
 
 /**
  * @swagger

@@ -7,6 +7,7 @@ import generateToken from "../utils/generateToken.js";
 import { generatePassword } from "../utils/generatePassword.js";
 import { transporter } from "../config/mailer.js";
 import { companyName } from "../config/company.js";
+import bcrypt from "bcryptjs";
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -47,12 +48,13 @@ export const registerUser = async (req, res) => {
         }
 
         const password = generatePassword(10);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({
             full_name,
             mobile,
             email: lowerEmail,
-            password: password,
+            password: hashedPassword,
             address,
             state,
             city,
@@ -107,26 +109,51 @@ export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const lowerEmail = email.toLowerCase();
-        const user = await User.findOne({
-            where: { email: lowerEmail },
-        });
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email/Employee ID and password are required" });
+        }
 
-        if (user && password === user.password) {
+        let user;
+        const isEmail = email.includes('@');
+
+        if (isEmail) {
+            // Admin/Super Admin login with email
+            const lowerEmail = email.toLowerCase();
+            user = await User.findOne({
+                where: { email: lowerEmail },
+            });
+        } else {
+            // Worker login with Employee ID
+            user = await User.findOne({
+                where: { employee_id: email },
+            });
+        }
+
+        if (user && await bcrypt.compare(password, user.password)) {
             if (user.is_active === false) {
                 return res.status(403).json({ message: "Your account has been disabled. Please contact the administrator." });
             }
+
+            // Validate role-based login
+            if (isEmail && user.role === 'employee') {
+                return res.status(403).json({ message: "Workers must login with Employee ID, not email" });
+            }
+            if (!isEmail && user.role !== 'employee') {
+                return res.status(403).json({ message: "Admins must login with email, not Employee ID" });
+            }
+
             res.json({
                 _id: user.id,
                 full_name: user.full_name,
                 email: user.email,
                 role: user.role,
                 designation: user.designation,
+                employee_id: user.employee_id,
                 profile_photo: user.profile_photo,
                 token: generateToken(user.id, user.role),
             });
         } else {
-            res.status(401).json({ message: "Invalid email or password" });
+            res.status(401).json({ message: "Invalid credentials" });
         }
     } catch (error) {
         console.error(error);
@@ -179,7 +206,7 @@ export const updateUserProfile = async (req, res) => {
 
 
             if (req.body.password) {
-                user.password = req.body.password;
+                user.password = await bcrypt.hash(req.body.password, 10);
             }
 
             const updatedUser = await user.save();
@@ -304,7 +331,7 @@ export const forgotPassword = async (req, res) => {
 
         // Generate temporary password
         const newPassword = generatePassword(10);
-        const hashedPassword = newPassword;
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         const mailOptions = {
             from: process.env.DEFAULT_FROM_EMAIL,
@@ -329,9 +356,9 @@ export const forgotPassword = async (req, res) => {
             await transporter.sendMail(mailOptions);
         } catch (emailError) {
             console.error("❌ Forgot Password Email failed:", emailError);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: "Failed to send reset email. Please try again later or contact support.",
-                error: emailError.message 
+                error: emailError.message
             });
         }
 
@@ -356,8 +383,8 @@ export const changePassword = async (req, res) => {
         const { currentPassword, newPassword } = req.body;
         const user = await User.findByPk(req.user.id);
 
-        if (user && currentPassword === user.password) {
-            user.password = newPassword;
+        if (user && await bcrypt.compare(currentPassword, user.password)) {
+            user.password = await bcrypt.hash(newPassword, 10);
             await user.save();
             res.json({ message: "Password changed successfully" });
         } else {
@@ -398,6 +425,80 @@ export const updateProfilePhoto = async (req, res) => {
             res.status(404).json({ message: "User not found" });
         }
     } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+/**
+ * @desc    Super Admin Initial Setup - One-time secure setup
+ * @route   POST /api/auth/super-admin-setup
+ * @access  Public (but only works if no super_admin exists)
+ */
+export const superAdminSetup = async (req, res) => {
+    try {
+        const { password } = req.body;
+
+        if (!password || password.length < 8) {
+            return res.status(400).json({ message: "Password must be at least 8 characters long" });
+        }
+
+        // Check if any super_admin already exists
+        const existingSuperAdmin = await User.findOne({ where: { role: 'super_admin' } });
+        if (existingSuperAdmin) {
+            return res.status(403).json({ message: "Super Admin already exists. Setup can only be performed once." });
+        }
+
+        // Check if the specific email already exists
+        const email = "wariskhan007@gmail.com";
+        const existingEmail = await User.findOne({ where: { email } });
+        if (existingEmail) {
+            return res.status(400).json({ message: "User with this email already exists" });
+        }
+
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create the Super Admin user
+        const superAdmin = await User.create({
+            full_name: "Super Admin",
+            mobile: "0000000000",
+            email: email,
+            password: hashedPassword,
+            role: "super_admin",
+            is_active: true,
+            designation: "Super Admin",
+        });
+
+        res.status(201).json({
+            message: "Super Admin created successfully",
+            user: {
+                _id: superAdmin.id,
+                full_name: superAdmin.full_name,
+                email: superAdmin.email,
+                role: superAdmin.role,
+                token: generateToken(superAdmin.id, superAdmin.role),
+            }
+        });
+    } catch (error) {
+        console.error("❌ Super Admin Setup Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+/**
+ * @desc    Check if Super Admin setup is needed
+ * @route   GET /api/auth/super-admin-setup/status
+ * @access  Public
+ */
+export const superAdminSetupStatus = async (req, res) => {
+    try {
+        const existingSuperAdmin = await User.findOne({ where: { role: 'super_admin' } });
+        res.json({
+            setupRequired: !existingSuperAdmin,
+            message: existingSuperAdmin ? "Super Admin already exists" : "Super Admin setup required"
+        });
+    } catch (error) {
+        console.error("❌ Super Admin Setup Status Error:", error);
         res.status(500).json({ message: "Server Error", error: error.message });
     }
 };

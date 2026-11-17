@@ -51,7 +51,7 @@ flyctl version
 cd "C:\Users\korba\Downloads\erp\med erp\backend"
 
 fly auth login
-fly launch --no-deploy --name namman-erp-backend --region bom
+fly launch --no-deploy --name nimi-erp-backend --region bom
 ```
 - Choose: **"Use existing Dockerfile"**
 - Say **No** to PostgreSQL (using external DB)
@@ -79,27 +79,27 @@ fly secrets set \
   DB_PASS=YOUR_DB_PASSWORD \
   DB_NAME=YOUR_DB_NAME \
   JWT_SECRET="GENERATE_A_LONG_RANDOM_STRING_HERE" \
-  COMPANY_NAME="Namman Dental Hospital pvt ltd" \
+  COMPANY_NAME="NIMI PRIVATE LIMITED" \
   COMPANY_SHORT_NAME=ERP \
   COMPANY_TAGLINE="Business Management Platform" \
-  COMPANY_ADDRESS="Namman Dental Hospital, V-26, Geetanjali Colony, Shankar Nagar, Raipur, Chhattisgarh 492007" \
-  COMPANY_CITY=Raipur \
-  COMPANY_STATE=Chhattisgarh \
-  COMPANY_PINCODE=492007 \
-  COMPANY_PHONE="+91-7000277736" \
-  COMPANY_EMAIL=info@nammandental.com \
-  COMPANY_WEBSITE=https://nammandental.com \
-  COMPANY_WHATSAPP="+91-7000277736" \
-  COMPANY_LOGO_URL=https://nammandental.com/logo.png \
+  COMPANY_ADDRESS="NIMI PRIVATE LIMITED, Registered Office Address" \
+  COMPANY_CITY=City \
+  COMPANY_STATE=State \
+  COMPANY_PINCODE=PINCODE \
+  COMPANY_PHONE="+91-XXXXXXXXXX" \
+  COMPANY_EMAIL=info@nimipl.com \
+  COMPANY_WEBSITE=https://nimipl.com \
+  COMPANY_WHATSAPP="+91-XXXXXXXXXX" \
+  COMPANY_LOGO_URL=https://nimipl.com/logo.png \
   FRONTEND_URL=https://YOUR_FRONTEND.vercel.app \
   FRONTEND_LOGIN_URL=https://YOUR_FRONTEND.vercel.app/auth/login \
-  SMTP_HOST=nammanhospital@gmail.com \
+  SMTP_HOST=info@nimipl.com \
   SMTP_PORT=465 \
-  SMTP_USER=nammanhospital@gmail.com \
-  SMTP_PASS=namman@2015 \
-  DEFAULT_FROM_EMAIL=nammanhospital@gmail.com \
-  CERT_SIGNATORY_NAME="DR. Manoj Agrawal" \
-  CERT_SIGNATORY_ROLE="DR. MANOJ AGRAWAL (MDS, Oral & Maxillofacial Surgery)" \
+  SMTP_USER=info@nimipl.com \
+  SMTP_PASS=nimi@2026 \
+  DEFAULT_FROM_EMAIL=info@nimipl.com \
+  CERT_SIGNATORY_NAME="NIMI PRIVATE LIMITED Authorized Signatory" \
+  CERT_SIGNATORY_ROLE="NIMI PRIVATE LIMITED Authorized Signatory" \
   PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
   PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ```
@@ -117,7 +117,7 @@ fly deploy
 ### 1.6 Scan WhatsApp QR Code
 ```bash
 # Watch logs for QR code
-fly logs -a namman-erp-backend
+fly logs -a nimi-erp-backend
 
 # When you see the QR code, scan it with WhatsApp on your phone
 # Auth will persist in the volume
@@ -126,7 +126,7 @@ fly logs -a namman-erp-backend
 ### 1.7 Verify Backend
 ```bash
 # Health check
-curl https://namman-erp-backend.fly.dev/api/health
+curl https://nimi-erp-backend.fly.dev/api/health
 
 # Should return: {"status":"ok",...}
 ```
@@ -155,16 +155,16 @@ git push -u origin main
 6. **Output Directory**: `dist`
 7. **Environment Variables**:
    ```
-   VITE_API_BASE_URL=https://namman-erp-backend.fly.dev/api
-   VITE_API_BASE_URL_IMG=https://namman-erp-backend.fly.dev
+   VITE_API_BASE_URL=https://nimi-erp-backend.fly.dev/api
+   VITE_API_BASE_URL_IMG=https://nimi-erp-backend.fly.dev
    ```
 8. Click **Deploy**
 
 ### 2.3 Update Backend CORS
-After Vercel gives you a URL (e.g., `https://erp-namman.vercel.app`):
+After Vercel gives you a URL (e.g., `https://erp-nimi.vercel.app`):
 
 ```bash
-fly secrets set FRONTEND_URL=https://erp-namman.vercel.app FRONTEND_LOGIN_URL=https://erp-namman.vercel.app/auth/login
+fly secrets set FRONTEND_URL=https://erp-nimi.vercel.app FRONTEND_LOGIN_URL=https://erp-nimi.vercel.app/auth/login
 fly deploy
 ```
 
@@ -176,8 +176,8 @@ fly deploy
 |-----|-------------|
 | `https://your-frontend.vercel.app` | Login page |
 | `https://your-frontend.vercel.app/api/health` | JSON: `{"status":"ok"}` |
-| `https://namman-erp-backend.fly.dev/api/health` | JSON: `{"status":"ok"}` |
-| `https://namman-erp-backend.fly.dev/api-docs` | Swagger UI |
+| `https://nimi-erp-backend.fly.dev/api/health` | JSON: `{"status":"ok"}` |
+| `https://nimi-erp-backend.fly.dev/api-docs` | Swagger UI |
 
 ---
 
@@ -186,10 +186,10 @@ fly deploy
 ### WhatsApp not connecting?
 ```bash
 # Check logs
-fly logs -a namman-erp-backend
+fly logs -a nimi-erp-backend
 
 # If stuck, restart
-fly apps restart namman-erp-backend
+fly apps restart nimi-erp-backend
 ```
 
 ### Database connection failed?
@@ -200,7 +200,7 @@ fly apps restart namman-erp-backend
 ### Out of Memory (OOM)?
 ```bash
 # Increase memory (still free tier)
-fly scale memory 512 --app namman-erp-backend
+fly scale memory 512 --app nimi-erp-backend
 ```
 
 ### Build fails?
@@ -279,5 +279,5 @@ git push
 - Vercel Docs: https://vercel.com/docs
 - PlanetScale Docs: https://planetscale.com/docs
 
-**Your backend URL**: `https://namman-erp-backend.fly.dev`
+**Your backend URL**: `https://nimi-erp-backend.fly.dev`
 **Your frontend URL**: `https://your-project.vercel.app`

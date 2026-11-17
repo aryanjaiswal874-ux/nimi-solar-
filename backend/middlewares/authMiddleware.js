@@ -59,3 +59,31 @@ export const partnerOnly = (req, res, next) => {
         res.status(401).json({ message: "Not authorized as a partner" });
     }
 };
+
+// Worker-only middleware - for routes that only employees/workers can access
+export const workerOnly = (req, res, next) => {
+    if (req.user && req.user.role === "employee") {
+        next();
+    } else {
+        res.status(401).json({ message: "Not authorized as a worker" });
+    }
+};
+
+// Self or Admin middleware - allows user to access their own data or admin/super_admin to access any
+export const selfOrAdmin = (req, res, next) => {
+    const targetUserId = req.params.id || req.params.employeeId || req.body.employee_id;
+    if (req.user && (req.user.role === "admin" || req.user.role === "super_admin" || req.user.id === targetUserId)) {
+        next();
+    } else {
+        res.status(403).json({ message: "Not authorized to access this resource" });
+    }
+};
+
+// Admin or Worker middleware - for routes accessible by both admin/super_admin and employee
+export const adminOrWorker = (req, res, next) => {
+    if (req.user && (req.user.role === "admin" || req.user.role === "super_admin" || req.user.role === "employee")) {
+        next();
+    } else {
+        res.status(401).json({ message: "Not authorized" });
+    }
+};

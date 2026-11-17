@@ -1,6 +1,7 @@
 
 import dotenv from "dotenv";
 import { Sequelize } from "sequelize";
+import bcrypt from "bcryptjs";
 
 dotenv.config();
 
@@ -21,9 +22,11 @@ async function seedAdmin() {
     await sequelize.authenticate();
     console.log("✅ DB connected");
 
+    // NOTE: Super Admin should be created via the secure setup endpoint at /api/auth/super-admin-setup
+    // This script is kept for backward compatibility but creates a regular admin user for development
     const email = "admin@admin.com";
     const password = "admin123";
-    const hashed = password;
+    const hashed = await bcrypt.hash(password, 10);
 
     // Check if admin user already exists
     const [existing] = await sequelize.query(
@@ -37,7 +40,7 @@ async function seedAdmin() {
         `UPDATE Users SET password = ?, role = 'admin' WHERE email = ?`,
         { replacements: [hashed, email] }
       );
-      console.log(`✅ Admin user updated — email: ${email}, password: ${password}`);
+      console.log(`✅ Admin user updated — email: ${email}`);
     } else {
       // Insert new admin user
       const uuid = Sequelize.literal("UUID()");
@@ -46,7 +49,7 @@ async function seedAdmin() {
          VALUES (UUID(), 'Admin', '0000000000', ?, ?, 'admin', 1, NOW(), NOW())`,
         { replacements: [email, hashed] }
       );
-      console.log(`✅ Admin user created — email: ${email}, password: ${password}`);
+      console.log(`✅ Admin user created — email: ${email} (password: admin123)`);
     }
 
     await sequelize.close();

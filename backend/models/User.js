@@ -81,6 +81,11 @@ const User = sequelize.define("User", {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
+    employee_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+    },
     is_active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
