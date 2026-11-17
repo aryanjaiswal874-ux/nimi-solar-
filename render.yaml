@@ -1,12 +1,30 @@
 services:
   - type: web
-    name: nimi-erp
+    name: nimi-erp-backend
     env: node
     region: singapore
     plan: free
-    buildCommand: cd backend && npm ci
-    startCommand: cd backend && node server.js
+    buildCommand: npm ci --omit=dev --ignore-scripts
+    startCommand: node server.js
     healthCheckPath: /api/health
+    rootDir: backend
+    envVars:
+      # App
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TZ
+        value: Asia/Kolkata
+      - key: DB_DIALECT
+        value: postgres
+      # Skip native builds
+      - key: SHARP_IGNORE_GLOBAL_LIBVIPS
+        value: "true"
+      - key: npm_config_optional
+        value: "true"
+      - key: npm_config_ignore_scripts
+        value: "true"
     envVars:
       # App
       - key: NODE_ENV
