@@ -247,8 +247,12 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
             <div className="bg-white rounded-md shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
                 <div className="px-6 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
                     <div>
-                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Update Employee Profile</h3>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5 tracking-tighter">Editing: {user.full_name}</p>
+                        <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                            {user?.isNew ? 'Add New Worker' : 'Update Employee Profile'}
+                        </h3>
+                        <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5 tracking-tighter">
+                            {user?.isNew ? 'Create new worker account' : `Editing: ${user.full_name}`}
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
@@ -307,7 +311,10 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                     <InputField label="Full Name" name="full_name" placeholder="Suraj Kumar" required />
                                     <InputField label="Email Address" name="email" type="email" placeholder="example@mail.com" required />
                                     <InputField label="Mobile Number" name="mobile" placeholder="+91 0000000000" required />
-                                    <InputField label="Employee ID" name="employee_id" placeholder="EMP001" />
+                                    <InputField label="Employee ID" name="employee_id" placeholder="EMP001" required />
+                                    {user?.isNew && (
+                                        <InputField label="Password" name="password" type="password" placeholder="Set password" required />
+                                    )}
                                     <InputField label="Age" name="age" type="number" placeholder="25" />
                                     <InputField label="Gender" name="gender" type="select" options={["Select", "Male", "Female", "Other"]} />
                                     <InputField label="Qualification" name="qualification" placeholder="B.Tech" />
@@ -472,8 +479,8 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                 className="px-5 py-2 bg-blue-600 text-white rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 disabled:opacity-70 flex items-center justify-center gap-2"
                                 disabled={loading}
                             >
-                                {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 
-                                Save Employee Information
+                                {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                {user?.isNew ? 'Create Worker' : 'Save Employee Information'}
                             </button>
                         </div>
                         </form>
