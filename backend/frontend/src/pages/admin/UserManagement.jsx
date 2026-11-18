@@ -140,19 +140,19 @@ const UserManagement = () => {
   const handleCreateUser = async (formData) => {
     try {
       const response = await API.post("/admin/users", formData);
-      toast.success("Worker created successfully");
+      if (typeof toast?.success === 'function') toast.success("Worker created successfully");
       fetchUsers();
       setEditUser(null);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create worker");
+      if (typeof toast?.error === 'function') toast.error("Failed to create worker");
     }
   };
 
   const handleSaveUser = async (userId, formData) => {
     try {
       const response = await API.put(`/admin/users/${userId}`, formData);
-      toast.success("User updated successfully");
+      if (typeof toast?.success === 'function') toast.success("User updated successfully");
       fetchUsers();
       if (selectedUser && selectedUser.id === userId) {
         setSelectedUser(response.data.user);
@@ -160,7 +160,7 @@ const UserManagement = () => {
       setEditUser(null);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update user");
+      if (typeof toast?.error === 'function') toast.error("Failed to update user");
     }
   };
 
