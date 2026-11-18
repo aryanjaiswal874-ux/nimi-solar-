@@ -136,6 +136,29 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation
+        if (!formData.full_name?.trim()) {
+            toast.error("Full name is required");
+            return;
+        }
+        if (!formData.email?.trim()) {
+            toast.error("Email is required");
+            return;
+        }
+        if (!formData.mobile?.trim()) {
+            toast.error("Mobile number is required");
+            return;
+        }
+        if (!formData.employee_id?.trim()) {
+            toast.error("Employee ID is required");
+            return;
+        }
+        if (user?.isNew && !formData.password) {
+            toast.error("Password is required for new worker");
+            return;
+        }
+
         setLoading(true);
         try {
             const data = new FormData();
@@ -198,14 +221,20 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
             }
 
             const isNewUser = user?.isNew === true;
-            if (isNewUser) {
-                await onCreate(data);
-            } else {
-                await onSave(user.id, data);
+            try {
+                if (isNewUser) {
+                    await onCreate(data);
+                    toast.success("Worker created successfully");
+                } else {
+                    await onSave(user.id, data);
+                    toast.success("Worker updated successfully");
+                }
+                onClose();
+            } catch (error) {
+                console.error("Failed to save user", error);
+                const message = error.response?.data?.message || error.message || "Failed to save worker";
+                toast.error(message);
             }
-            onClose();
-        } catch (error) {
-            console.error("Failed to save user", error);
         } finally {
             setLoading(false);
         }
