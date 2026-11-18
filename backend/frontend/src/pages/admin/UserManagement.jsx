@@ -16,6 +16,7 @@ import {
   Phone,
   Download,
   Edit3,
+  UserPlus,
 } from "lucide-react";
 import EditUserModal from "../../components/admin/users/EditUserModal";
 import { useToast } from "../../context/ToastContext";
@@ -134,6 +135,18 @@ const UserManagement = () => {
 
   const handleEditUser = (user) => {
     setEditUser(user);
+  };
+
+  const handleCreateUser = async (formData) => {
+    try {
+      const response = await API.post("/admin/users", formData);
+      toast.success("Worker created successfully");
+      fetchUsers();
+      setEditUser(null);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to create worker");
+    }
   };
 
   const handleSaveUser = async (userId, formData) => {
@@ -973,12 +986,24 @@ const UserManagement = () => {
           </select>
 
           {(isAdmin || isSuperAdmin) && (
-            <button
-              onClick={handleExport}
-              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm transition-all flex items-center gap-2"
-            >
-              <Download size={14} /> Export XLS
-            </button>
+            <>
+              <button
+                onClick={() => setEditUser({
+                  role: 'employee',
+                  is_active: true,
+                  isNew: true
+                })}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm transition-all flex items-center gap-2"
+              >
+                <UserPlus size={14} /> Add Worker
+              </button>
+              <button
+                onClick={handleExport}
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-sm transition-all flex items-center gap-2"
+              >
+                <Download size={14} /> Export XLS
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -1001,6 +1026,7 @@ const UserManagement = () => {
             isOpen={true}
             onClose={() => setEditUser(null)}
             onSave={handleSaveUser}
+            onCreate={handleCreateUser}
           />
         )
       }

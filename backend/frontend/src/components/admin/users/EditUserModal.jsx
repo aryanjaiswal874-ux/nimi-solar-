@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Save, Upload, User, Loader2, Shield, MapPin, Building2, Briefcase } from "lucide-react";
 
-const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
+const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate }) => {
     const [formData, setFormData] = useState({
         full_name: "",
         email: "",
@@ -139,7 +139,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
         setLoading(true);
         try {
             const data = new FormData();
-            
+
             const finalDesignation = formData.designation === "Other" ? customDesignation : formData.designation;
 
             // Basic & Identity
@@ -153,7 +153,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
             data.append("age", formData.age);
             data.append("gender", formData.gender);
             data.append("qualification", formData.qualification);
-            
+
             // Location
             data.append("state", formData.state);
             data.append("city", formData.city);
@@ -197,7 +197,12 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave }) => {
                 data.append("profile_photo", profilePhoto);
             }
 
-            await onSave(user.id, data);
+            const isNewUser = user?.isNew === true;
+            if (isNewUser) {
+                await onCreate(data);
+            } else {
+                await onSave(user.id, data);
+            }
             onClose();
         } catch (error) {
             console.error("Failed to save user", error);
