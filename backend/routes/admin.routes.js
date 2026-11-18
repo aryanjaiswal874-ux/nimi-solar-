@@ -1,5 +1,5 @@
 import express from "express";
-import { getAdminStats, getUsers, updateUser, deleteUser, sendWhatsAppMessage } from "../controllers/adminController.js";
+import { getAdminStats, getUsers, updateUser, deleteUser, sendWhatsAppMessage, createUser } from "../controllers/adminController.js";
 import { getOrders } from "../controllers/orderController.js";
 import { protect, adminOnly, superAdminOnly, staffOnly } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/uploadMiddleware.js";
@@ -44,6 +44,7 @@ router.get("/stats", protect, adminOnly, getAdminStats);
  *         description: Unauthorized
  */
 router.get("/users", protect, adminOnly, getUsers);
+router.post("/users", protect, adminOnly, upload.single('profile_photo'), createUser);
 router.put("/users/:id", protect, adminOnly, upload.single('profile_photo'), updateUser);
 router.delete("/users/:id", protect, superAdminOnly, deleteUser);
 router.post("/send-whatsapp", protect, staffOnly, sendWhatsAppMessage);

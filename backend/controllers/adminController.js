@@ -197,6 +197,117 @@ export const updateUser = async (req, res) => {
     }
 };
 
+// @desc    Create new user
+// @route   POST /api/admin/users
+// @access  Private/Admin
+export const createUser = async (req, res) => {
+    try {
+        const {
+            full_name, email, mobile, employee_id, role, designation,
+            is_active, smartflo_agent_id, smartflo_caller_id, call_access,
+            state, city, pincode, address, gross_salary,
+            joining_date, upi_id, work_mode, age, gender,
+            qualification, bank_details, office_in_time, office_out_time,
+            week_offs, sunday_in_time, sunday_out_time, password
+        } = req.body;
+
+        // Validation
+        if (!full_name || !email || !mobile || !employee_id) {
+            return res.status(400).json({
+                message: "Full name, email, mobile, and employee_id are required"
+            });
+        }
+
+        // Check if email already exists
+        const emailExists = await User.findOne({ where: { email } });
+        if (emailExists) {
+            return res.status(400).json({ message: "User already exists with this email" });
+        }
+
+        // Check if employee_id already exists
+        const empIdExists = await User.findOne({ where: { employee_id } });
+        if (empIdExists) {
+            return res.status(400).json({ message: "User already exists with this employee ID" });
+        }
+
+        // Hash password
+        let hashedPassword = null;
+        if (password && password.trim() !== '') {
+            const salt = await bcrypt.genSalt(10);
+            hashedPassword = await bcrypt.hash(password, salt);
+        }
+
+        // Parse JSON fields
+        let parsedAddress = null;
+        if (address) {
+            try {
+                parsedAddress = typeof address === 'string' ? JSON.parse(address) : address;
+            } catch (e) {
+                parsedAddress = address;
+            }
+        }
+
+        let parsedBankDetails = null;
+        if (bank_details) {
+            try {
+                parsedBankDetails = typeof bank_details === 'string' ? JSON.parse(bank_details) : bank_details;
+            } catch (e) {
+                parsedBankDetails = bank_details;
+            }
+        }
+
+        let parsedWeekOffs = null;
+        if (week_offs) {
+            try {
+                parsedWeekOffs = typeof week_offs === 'string' ? JSON.parse(week_offs) : week_offs;
+            } catch (e) {
+                parsedWeekOffs = week_offs;
+            }
+        }
+
+        // Create user
+        const user = await User.create({
+            full_name,
+            email: email.toLowerCase(),
+            mobile,
+            employee_id,
+            role: role || 'employee',
+            designation,
+            is_active: is_active !== false,
+            smartflo_agent_id,
+            smartflo_caller_id,
+            call_access: call_access === 'true' || call_access === true,
+            state,
+            city,
+            pincode,
+            address: parsedAddress,
+            gross_salary: gross_salary ? parseInt(gross_salary) : null,
+            joining_date,
+            upi_id,
+            work_mode,
+            age: age ? parseInt(age) : null,
+            gender,
+            qualification,
+            bank_details: parsedBankDetails,
+            office_in_time,
+            office_out_time,
+            week_offs: parsedWeekOffs,
+            sunday_in_time,
+            sunday_out_time,
+            password: hashedPassword
+        });
+
+        // Return user without password
+        const newUser = user.toJSON();
+        delete newUser.password;
+
+        res.status(201).json({ message: "User created successfully", user: newUser });
+    } catch (error) {
+        console.error("❌ Create User Error:", error);
+        res.status(500).json({ message: "Error creating user", error: error.message });
+    }
+};
+
 // @desc    Delete user
 // @route   DELETE /api/admin/users/:id
 // @access  Private/SuperAdmin
