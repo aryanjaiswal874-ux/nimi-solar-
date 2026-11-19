@@ -40,6 +40,7 @@ import {
 import API from "../../api/axios";
 import DashboardLoader from "../../components/layout/DashboardLoader";
 import StatsCard from "../../components/shared/StatsCard";
+import WhatsAppConnection from "../../components/admin/WhatsAppConnection";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import moment from "moment";
@@ -1067,6 +1068,11 @@ const MyDashboardTab = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ─── WHATSAPP CONNECTION SECTION ─── */}
+      <div className="mt-6 max-w-[1600px] mx-auto">
+        <WhatsAppConnection />
       </div>
 
       {/* ─── MODALS ─── */}

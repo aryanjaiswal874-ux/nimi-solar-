@@ -464,11 +464,11 @@ export const sendDailyReportEmail = async (req, res) => {
         // WhatsApp Notification to Group
         try {
             const { ERP_OfficeSetting } = await import("../models/index.js");
-            const { sendWhatsAppToJID } = await import("../utils/whatsappService.js");
+            const { sendToGroup } = await import("../utils/waBot.js");
             const settings = await ERP_OfficeSetting.findOne();
             if (settings && settings.whatsapp_group_jid) {
                 const message = `📊 *Daily Work Report Submitted*\n\n👤 *Submitted By:* ${userName}\n📅 *Date:* ${date}\n✅ *Total Interactions:* ${histories.length}\n\n*The detailed report has been sent via email to admin.*`;
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
             }
         } catch (waErr) {
             console.error("WA Group Notify Error in Daily Report:", waErr.message);

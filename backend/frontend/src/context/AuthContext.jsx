@@ -44,7 +44,14 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            // Call backend logout endpoint for cleanup
+            await API.post("/auth/logout");
+        } catch (error) {
+            console.error("Backend logout failed:", error);
+            // Continue with local logout even if backend call fails
+        }
         setUser(null);
         localStorage.removeItem("sbgm_user");
     };

@@ -1,12 +1,13 @@
 import { ERP_Attendance, ERP_OfficeSetting, ERP_ToDo, ERP_WorkReport, ERP_Payroll, ERP_EmployeeLocation, ERP_Holiday, User, Lead, ERP_LiveLocation, ERP_LocationHistory, WhatsAppMessage, WhatsAppChat } from "../models/index.js";
 
 import { Op } from "sequelize";
-import { sendWhatsAppText, sendWhatsAppImage, sendWhatsAppBase64ImageToJID, sendWhatsAppToJID, sendWhatsAppVideo, sendWhatsAppDoc } from "../utils/whatsappService.js";
+import { sendWhatsAppText, sendWhatsAppImage, sendWhatsAppVideo, sendWhatsAppDoc } from "../utils/whatsappService.js";
+import { sendToGroup, sendImageToGroup } from "../utils/waBot.js";
 
 import path from "path";
 import moment from "moment";
 import { saveBase64Image } from "../utils/imageHandler.js";
-import { getWhatsAppStatus as checkWAStatus, logoutWhatsApp } from "../utils/whatsappBot.js";
+import { getWhatsAppStatus as checkWAStatus, logoutWhatsApp } from "../utils/waBot.js";
 import { companyName } from "../config/company.js";
 
 // --- Office Settings ---
@@ -214,9 +215,9 @@ export const markIn = async (req, res) => {
                 const caption = `✅ *Attendance Marked*\n\n👤 *${empName}*\n📅 ${displayDate}\n🕒 ${displayTime}\n📍 ${location || 'N/A'}`;
 
                 if (photo && photo.startsWith("data:image")) {
-                    await sendWhatsAppBase64ImageToJID(settings.whatsapp_group_jid, caption, photo);
+                    await sendImageToGroup(settings.whatsapp_group_jid, caption, photo);
                 } else {
-                    await sendWhatsAppToJID(settings.whatsapp_group_jid, caption);
+                    await sendToGroup(settings.whatsapp_group_jid, caption);
                 }
             }
         } catch (waErr) {
@@ -289,7 +290,7 @@ export const markOut = async (req, res) => {
 
                 let message = `✔️ *${empName}* logged out from work at ${outTimeFormatted}`;
 
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
             }
         } catch (waErr) {
             console.error("WA Group Notify Error:", waErr.message);
@@ -324,7 +325,7 @@ export const takeBreak = async (req, res) => {
             const employee = await User.findByPk(employee_id);
             if (settings && settings.whatsapp_group_jid) {
                 const message = `🔴 *${employee?.full_name}* took a break at ${now.substring(0, 5)}\nReason: ${reason || 'Not specified'}`;
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
             }
         } catch (waErr) {
             console.error("WA Group Notify Error in takeBreak:", waErr.message);
@@ -357,7 +358,7 @@ export const resumeWork = async (req, res) => {
             const employee = await User.findByPk(employee_id);
             if (settings && settings.whatsapp_group_jid) {
                 const message = `✅ *${employee?.full_name}* is back to work now.`;
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
             }
         } catch (waErr) {
             console.error("WA Group Notify Error in resumeWork:", waErr.message);
@@ -608,7 +609,7 @@ export const createWorkReport = async (req, res) => {
                 const bulletList = lines.map(line => line.startsWith('•') || line.startsWith('-') ? line : `• ${line}`).join('\n');
 
                 const message = `📋 *Work Report of ${empName}*\n📅 *Date:* ${dateHeader}\n✅ *Tasks Completed Today:*\n${bulletList}`;
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
             }
         } catch (waErr) {
             console.error("WA Work Report Notify Error:", waErr.message);
@@ -1008,7 +1009,7 @@ export const markAllAbsent = async (req, res) => {
 
                 const message = `🚨 *Attendance Alert – Absent Employees*\n\n📅 Date: ${dateHeader}\n🕒 Checked At: ${timeNow}\n\nThe following employees are marked *Absent* today:\n\n${list}\n\n⚠️ *Note:*\nIf any of the above employees have a valid reason (leave / late entry / technical issue), please contact HR Department.`;
 
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
             }
         } catch (waErr) {
             console.error("WA Absent notify error:", waErr.message);
@@ -1300,7 +1301,7 @@ export const checkTomorrowHoliday = async (req, res) => {
                     message = `🚨 *${companyName()} ERP: Holiday Announcement* 🚨\n\nTomorrow on *${tomorrowDateFormatted} (${tomorrowDay})* is a holiday on occasion of *${occasions}*.\n\n_System Broadcast_`;
                 }
 
-                await sendWhatsAppToJID(settings.whatsapp_group_jid, message);
+                await sendToGroup(settings.whatsapp_group_jid, message);
                 return res.status(200).json({ message: "Notification sent", holiday: holiday.title });
             }
             return res.status(200).json({ message: "Holiday found but JID not set", holiday: holiday.title });

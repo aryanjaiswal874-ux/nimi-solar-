@@ -502,3 +502,19 @@ export const superAdminSetupStatus = async (req, res) => {
         res.status(500).json({ message: "Server Error", error: error.message });
     }
 };
+
+/**
+ * @desc    Logout user (client-side token invalidation)
+ * @route   POST /api/auth/logout
+ * @access  Private
+ */
+export const logoutUser = async (req, res) => {
+    try {
+        // With JWT, logout is primarily client-side (remove token from storage)
+        // This endpoint exists for API consistency and potential future token blacklisting
+        res.json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error("❌ Logout Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};

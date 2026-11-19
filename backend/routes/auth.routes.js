@@ -9,7 +9,8 @@ import {
     changePassword,
     getPublicUsers,
     superAdminSetup,
-    superAdminSetupStatus
+    superAdminSetupStatus,
+    logoutUser
 } from "../controllers/authController.js";
 import {
     getCompanies,
@@ -184,6 +185,20 @@ router.post("/super-admin-setup", superAdminSetup);
  *         description: Password changed successfully
  */
 router.post("/change-password", protect, changePassword);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ */
+router.post("/logout", protect, logoutUser);
 
 /**
  * @swagger

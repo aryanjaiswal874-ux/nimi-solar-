@@ -186,10 +186,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
             toast.error("Employee ID is required");
             return;
         }
-        if (user?.isNew && !formData.password) {
-            toast.error("Password is required for new worker");
-            return;
-        }
+        // Password is optional - if not provided, a random one will be generated
 
         setLoading(true);
         try {

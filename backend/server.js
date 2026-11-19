@@ -2,7 +2,7 @@ import "dotenv/config";
 process.env.TZ = 'Asia/Kolkata';
 import app from "./app.js";
 import { syncDatabase } from "./models/index.js";
-import { connectToWhatsApp } from "./utils/whatsappBot.js";
+import { connectToWhatsApp } from "./utils/waBot.js";
 import initCronJobs from "./utils/cronJobs.js";
 
 const PORT = process.env.PORT || 8080;

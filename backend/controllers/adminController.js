@@ -134,18 +134,39 @@ export const updateUser = async (req, res) => {
 
         // Update other fields
         const fieldsToUpdate = [
-            "full_name", "email", "mobile", "role", "designation", 
-            "is_active", "smartflo_agent_id", "smartflo_caller_id", 
+            "full_name", "email", "mobile", "role", "designation",
+            "is_active", "smartflo_agent_id", "smartflo_caller_id",
             "call_access", "state", "city", "pincode", "address", "gross_salary",
-            "joining_date", "upi_id", "work_mode", "age", "gender", 
+            "joining_date", "upi_id", "work_mode", "age", "gender",
             "qualification", "bank_details", "office_in_time", "office_out_time", "week_offs",
             "sunday_in_time", "sunday_out_time"
         ];
 
+        // Handle mobile standardization and uniqueness check
+        if (req.body.mobile !== undefined && req.body.mobile !== user.mobile) {
+            let standardizedMobile = req.body.mobile.toString().replace(/\D/g, '');
+            if (standardizedMobile.length > 10) {
+                standardizedMobile = standardizedMobile.slice(-10);
+            }
+
+            // Check if mobile already exists for another user
+            const mobileExists = await User.findOne({
+                where: {
+                    mobile: standardizedMobile,
+                    id: { [Op.ne]: user.id }
+                }
+            });
+            if (mobileExists) {
+                return res.status(400).json({ message: "Mobile number already in use by another user" });
+            }
+            user.mobile = standardizedMobile;
+        }
+
         fieldsToUpdate.forEach(field => {
+            if (field === 'mobile') return; // Already handled above
             if (req.body[field] !== undefined) {
                 const val = req.body[field];
-                
+
                 if (booleanFields.includes(field)) {
                     // Handle booleans from FormData (arrive as strings)
                     user[field] = val === 'true' || val === true;
@@ -218,10 +239,22 @@ export const createUser = async (req, res) => {
             });
         }
 
+        // Standardize mobile number (same as registerUser)
+        let standardizedMobile = mobile.toString().replace(/\D/g, '');
+        if (standardizedMobile.length > 10) {
+            standardizedMobile = standardizedMobile.slice(-10);
+        }
+
         // Check if email already exists
-        const emailExists = await User.findOne({ where: { email } });
+        const emailExists = await User.findOne({ where: { email: email.toLowerCase() } });
         if (emailExists) {
             return res.status(400).json({ message: "User already exists with this email" });
+        }
+
+        // Check if mobile already exists
+        const mobileExists = await User.findOne({ where: { mobile: standardizedMobile } });
+        if (mobileExists) {
+            return res.status(400).json({ message: "User already exists with this mobile number" });
         }
 
         // Check if employee_id already exists
@@ -230,11 +263,17 @@ export const createUser = async (req, res) => {
             return res.status(400).json({ message: "User already exists with this employee ID" });
         }
 
-        // Hash password
-        let hashedPassword = null;
+        // Hash password - generate random password if not provided (required for worker login)
+        let hashedPassword;
         if (password && password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
             hashedPassword = await bcrypt.hash(password, salt);
+        } else {
+            // Generate a random password for workers who don't provide one
+            const { generatePassword } = await import("../utils/generatePassword.js");
+            const randomPassword = generatePassword(10);
+            const salt = await bcrypt.genSalt(10);
+            hashedPassword = await bcrypt.hash(randomPassword, salt);
         }
 
         // Parse JSON fields
@@ -269,7 +308,7 @@ export const createUser = async (req, res) => {
         const user = await User.create({
             full_name,
             email: email.toLowerCase(),
-            mobile,
+            mobile: standardizedMobile,
             employee_id,
             role: role || 'employee',
             designation,
