@@ -13,6 +13,19 @@ export default defineConfig({
       },
     },
   },
+  resolve: {
+    alias: {
+      // Polyfill Node.js modules for browser
+      fs: "fs",
+      path: "path-browserify",
+      crypto: "crypto-browserify",
+      stream: "stream-browserify",
+      buffer: "buffer",
+    },
+  },
+  define: {
+    global: "globalThis",
+  },
   build: {
     outDir: "dist",
     rollupOptions: {
