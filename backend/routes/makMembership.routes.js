@@ -1,5 +1,5 @@
 import express from "express";
-import { protect, admin } from "../middlewares/authMiddleware.js";
+import { protect, adminOnly } from "../middlewares/authMiddleware.js";
 import {
     getMembershipPlans,
     getAllMembershipPlans,
@@ -14,9 +14,9 @@ const router = express.Router();
 router.get("/", getMembershipPlans);
 
 // Admin routes to manage plans
-router.get("/all", protect, admin, getAllMembershipPlans);
-router.post("/", protect, admin, createMembershipPlan);
-router.put("/:id", protect, admin, updateMembershipPlan);
-router.delete("/:id", protect, admin, deleteMembershipPlan);
+router.get("/all", protect, adminOnly, getAllMembershipPlans);
+router.post("/", protect, adminOnly, createMembershipPlan);
+router.put("/:id", protect, adminOnly, updateMembershipPlan);
+router.delete("/:id", protect, adminOnly, deleteMembershipPlan);
 
 export default router;

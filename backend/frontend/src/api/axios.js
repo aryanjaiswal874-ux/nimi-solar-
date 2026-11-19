@@ -18,4 +18,20 @@ API.interceptors.request.use(
     }
 );
 
+// Add a response interceptor to handle 401/403 errors (token expired/invalid)
+API.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            // Token expired or invalid - clear user data and redirect to login
+            localStorage.removeItem("sbgm_user");
+            // Only redirect if not already on login page
+            if (window.location.pathname !== "/auth/login") {
+                window.location.href = "/auth/login";
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default API;
