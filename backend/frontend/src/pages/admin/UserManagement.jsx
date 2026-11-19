@@ -120,16 +120,18 @@ const UserManagement = () => {
 
 
   const handleToggleUserStatus = async (user) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     const currentStatus = user.is_active !== false;
     const nextStatus = !currentStatus;
 
     try {
       await API.put(`/admin/users/${user.id}`, { is_active: nextStatus });
-      toast.success(`User ${nextStatus ? "enabled" : "disabled"} successfully`);
+      if (showSuccess) showSuccess(`User ${nextStatus ? "enabled" : "disabled"} successfully`);
       fetchUsers();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update user status");
+      if (showError) showError("Failed to update user status");
     }
   };
 
@@ -138,21 +140,25 @@ const UserManagement = () => {
   };
 
   const handleCreateUser = async (formData) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     try {
       const response = await API.post("/admin/users", formData);
-      if (typeof toast?.success === 'function') toast.success("Worker created successfully");
+      if (showSuccess) showSuccess("Worker created successfully");
       fetchUsers();
       setEditUser(null);
     } catch (error) {
       console.error(error);
-      if (typeof toast?.error === 'function') toast.error("Failed to create worker");
+      if (showError) showError("Failed to create worker");
     }
   };
 
   const handleSaveUser = async (userId, formData) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     try {
       const response = await API.put(`/admin/users/${userId}`, formData);
-      if (typeof toast?.success === 'function') toast.success("User updated successfully");
+      if (showSuccess) showSuccess("User updated successfully");
       fetchUsers();
       if (selectedUser && selectedUser.id === userId) {
         setSelectedUser(response.data.user);
@@ -160,11 +166,13 @@ const UserManagement = () => {
       setEditUser(null);
     } catch (error) {
       console.error(error);
-      if (typeof toast?.error === 'function') toast.error("Failed to update user");
+      if (showError) showError("Failed to update user");
     }
   };
 
   const handleRoleChange = async (user, newRole) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     try {
       const formData = new FormData();
       formData.append("role", newRole);
@@ -173,15 +181,17 @@ const UserManagement = () => {
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
       );
-      toast.success("Role updated successfully");
+      if (showSuccess) showSuccess("Role updated successfully");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update role");
+      if (showError) showError("Failed to update role");
       fetchUsers();
     }
   };
 
   const handleDesignationChange = async (user, newDesignation) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     try {
       const formData = new FormData();
       formData.append("designation", newDesignation);
@@ -190,29 +200,33 @@ const UserManagement = () => {
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, designation: newDesignation } : u))
       );
-      toast.success("Designation updated successfully");
+      if (showSuccess) showSuccess("Designation updated successfully");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update designation");
+      if (showError) showError("Failed to update designation");
       fetchUsers();
     }
   };
 
   const handleAgentIdChange = async (user, newAgentId) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     try {
       await API.put(`/admin/users/${user.id}`, { smartflo_agent_id: newAgentId });
 
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, smartflo_agent_id: newAgentId } : u))
       );
-      toast.success("Agent ID updated");
+      if (showSuccess) showSuccess("Agent ID updated");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update Agent ID");
+      if (showError) showError("Failed to update Agent ID");
     }
   };
 
   const handleCallerIdChange = async (user, newCallerId) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     try {
       // Use JSON for simple field updates for better reliability when no file is involved
       await API.put(`/admin/users/${user.id}`, { smartflo_caller_id: newCallerId });
@@ -220,14 +234,16 @@ const UserManagement = () => {
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, smartflo_caller_id: newCallerId } : u))
       );
-      toast.success("Caller ID updated");
+      if (showSuccess) showSuccess("Caller ID updated");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update Caller ID");
+      if (showError) showError("Failed to update Caller ID");
     }
   };
 
   const handleDeleteUser = async (user) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     if (!window.confirm(`Are you sure you want to delete ${user.full_name}? This action cannot be undone.`)) {
       return;
     }
@@ -235,42 +251,30 @@ const UserManagement = () => {
     try {
       setActionLoading(user.id);
       await API.delete(`/admin/users/${user.id}`);
-      toast.success("User deleted successfully");
+      if (showSuccess) showSuccess("User deleted successfully");
       fetchUsers();
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to delete user");
+      if (showError) showError(error.response?.data?.message || "Failed to delete user");
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleCallAccessToggle = async (user) => {
+    const showSuccess = toast?.success;
+    const showError = toast?.error;
     const newStatus = !user.call_access;
     try {
-      const formData = new FormData();
-      formData.append("call_access", newStatus);
-      // Assuming your backend handles boolean conversion correctly for FormData or use JSON
-      // Since other updates use FormData, we might need to be careful. 
-      // Let's stick to JSON for boolean specific toggle if possible, 
-      // but typically the general update endpoint expects FormData if it handles file uploads.
-      // If it accepts JSON too, that's better. For now assuming consistent use of API.put which might rely on backend parsing.
-      // Actually, let's use a dedicated object if the backend supports it, but checking handleSaveUser uses FormData.
-
-      // Let's send it as JSON to ensure boolean type is clear if backend supports it, 
-      // OR as string 'true'/'false' if using FormData.
-      // Based on `handleToggleUserStatus`, it uses JSON: await API.put(..., { is_active: nextStatus });
-      // So we should try JSON first for simple updates.
-
       await API.put(`/admin/users/${user.id}`, { call_access: newStatus });
 
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, call_access: newStatus } : u))
       );
-      toast.success(`Call access ${newStatus ? "granted" : "revoked"}`);
+      if (showSuccess) showSuccess(`Call access ${newStatus ? "granted" : "revoked"}`);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to update call access");
+      if (showError) showError("Failed to update call access");
     }
   };
 

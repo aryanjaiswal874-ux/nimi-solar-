@@ -1,7 +1,39 @@
 import { useState, useEffect } from "react";
 import { X, Save, Upload, User, Loader2, Shield, MapPin, Building2, Briefcase } from "lucide-react";
+import { useToast } from "../../../context/ToastContext";
+
+// Moved outside component to prevent re-creation on every render
+const InputField = ({ label, name, type = "text", placeholder, options, required = false, ...props }) => {
+    return (
+        <div className="space-y-1">
+            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                {label} {required && <span className="text-rose-500">*</span>}
+            </label>
+            {type === "select" ? (
+                <select
+                    name={name}
+                    {...props}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                >
+                    {options.map(opt => (
+                        <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt}</option>
+                    ))}
+                </select>
+            ) : (
+                <input
+                    type={type}
+                    name={name}
+                    {...props}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all placeholder:text-slate-300"
+                    placeholder={placeholder}
+                />
+            )}
+        </div>
+    );
+};
 
 const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate }) => {
+    const toast = useToast();
     const [formData, setFormData] = useState({
         full_name: "",
         email: "",
@@ -36,7 +68,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
         sunday_in_time: "",
         sunday_out_time: ""
     });
-    
+
     const [profilePhoto, setProfilePhoto] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -44,10 +76,10 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
     const [customDesignation, setCustomDesignation] = useState("");
 
     const designations = [
-        "Select", "Doctor", "Nurse", "Ward Boy", "Receptionist", 
-        "Graphic Designer", "HR", "Medical Staff", "CEO", "Director", 
-        "Frontend Developer", "Backend Developer", "Fullstack Developer", 
-        "Accountant", "CA", "Telecaller", "Sales Manager", "BDM", 
+        "Select", "Doctor", "Nurse", "Ward Boy", "Receptionist",
+        "Graphic Designer", "HR", "Medical Staff", "CEO", "Director",
+        "Frontend Developer", "Backend Developer", "Fullstack Developer",
+        "Accountant", "CA", "Telecaller", "Sales Manager", "BDM",
         "Digital Marketing Manager", "Software Developer", "IT Admin", "Other"
     ];
 
@@ -107,10 +139,10 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
             setPreviewUrl(
                 user.profile_photo?.startsWith("http") ||
                 user.profile_photo?.startsWith("data:")
-                ? user.profile_photo
-                : user.profile_photo
-                    ? `${import.meta.env.VITE_API_BASE_URL_IMG}${user.profile_photo}`
-                    : null
+                    ? user.profile_photo
+                    : user.profile_photo
+                        ? `${import.meta.env.VITE_API_BASE_URL_IMG}${user.profile_photo}`
+                        : null
             );
 
             if (user.designation && !isStandardDesignation) {
@@ -242,35 +274,6 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
 
     if (!isOpen) return null;
 
-    const InputField = ({ label, name, type = "text", placeholder, options, required = false }) => (
-        <div className="space-y-1">
-            <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 whitespace-nowrap overflow-hidden text-ellipsis">
-                {label} {required && <span className="text-rose-500">*</span>}
-            </label>
-            {type === "select" ? (
-                <select
-                    name={name}
-                    value={formData[name]}
-                    onChange={handleChange}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
-                >
-                    {options.map(opt => (
-                        <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt}</option>
-                    ))}
-                </select>
-            ) : (
-                <input
-                    type={type}
-                    name={name}
-                    value={formData[name]}
-                    onChange={handleChange}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all placeholder:text-slate-300"
-                    placeholder={placeholder}
-                />
-            )}
-        </div>
-    );
-
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="bg-white rounded-md shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200">
@@ -291,7 +294,6 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                     </button>
                 </div>
 
-                {/* Horizontal Layout: Top Tabs + Content */}
                 <div className="flex flex-col flex-1 overflow-hidden">
                     {/* Top Horizontal Tabs */}
                     <div className="w-full bg-slate-50 border-b border-slate-100 flex overflow-x-auto hide-scrollbar">
@@ -316,7 +318,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                     {/* Content Area */}
                     <div className="flex-1 overflow-y-auto p-5 bg-white">
                         <form onSubmit={handleSubmit} className="space-y-5">
-                        
+
                         {activeTab === 'basic' && (
                             <div className="space-y-5 animate-in fade-in duration-300">
                                 <div className="flex flex-col items-center justify-center bg-slate-50 p-4 rounded-md border border-dashed border-slate-300">
@@ -381,7 +383,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                     <InputField label="In Time (Override)" name="office_in_time" type="time" />
                                     <InputField label="Out Time (Override)" name="office_out_time" type="time" />
                                 </div>
-                                    
+
                                 <div className="space-y-1">
                                     <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 whitespace-nowrap">
                                         Week Offs
@@ -389,8 +391,8 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                     <div className="flex flex-wrap gap-1.5">
                                         {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
                                             <label key={day} className="flex items-center gap-1.5 bg-white px-2 py-1 border border-slate-200 rounded-md cursor-pointer hover:bg-slate-50 transition-colors">
-                                                <input 
-                                                    type="checkbox" 
+                                                <input
+                                                    type="checkbox"
                                                     checked={formData.week_offs.includes(day)}
                                                     onChange={(e) => {
                                                         if (e.target.checked) {
@@ -426,8 +428,8 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                         <p className="text-[9px] font-black text-slate-800 uppercase tracking-widest">Account Active</p>
                                         <p className="text-[8px] text-slate-400 font-bold uppercase">Toggle Login Access</p>
                                     </div>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setFormData(p => ({...p, is_active: !p.is_active}))}
                                         className={`w-10 h-5 rounded-full transition-all relative ${formData.is_active ? 'bg-green-500' : 'bg-slate-300'}`}
                                     >
@@ -493,30 +495,30 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                 </div>
                             </div>
                         )}
+                    </form>
 
-                        <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3 justify-end">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-5 py-2 bg-slate-100 text-slate-600 rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
-                                disabled={loading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-5 py-2 bg-blue-600 text-white rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 disabled:opacity-70 flex items-center justify-center gap-2"
-                                disabled={loading}
-                            >
-                                {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                                {user?.isNew ? 'Create Worker' : 'Save Employee Information'}
-                            </button>
-                        </div>
-                        </form>
+                    <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3 justify-end">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-5 py-2 bg-slate-100 text-slate-600 rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all border border-slate-200"
+                            disabled={loading}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-5 py-2 bg-blue-600 text-white rounded-md text-[9px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm shadow-blue-200 disabled:opacity-70 flex items-center justify-center gap-2"
+                            disabled={loading}
+                        >
+                            {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                            {user?.isNew ? 'Create Worker' : 'Save Employee Information'}
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
     );
 };
 

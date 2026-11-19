@@ -1,8 +1,8 @@
 import makeWASocket, {
   DisconnectReason,
-  useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
+  proto,
 } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import pino from "pino";
@@ -10,29 +10,7 @@ import qrcode from "qrcode-terminal";
 import path from "path";
 import fs from "fs-extra";
 import moment from "moment";
-
-// Use persistent volume path on Fly.io, Render, or local for dev
-const isProduction = process.env.NODE_ENV === "production";
-const isRender = process.env.RENDER === "true" || process.env.RENDER_SERVICE_ID;
-
-let AUTH_DIR, UPLOAD_DIR;
-
-if (isRender) {
-  // Render native Node.js: use project directory
-  AUTH_DIR = path.join(process.cwd(), "whatsapp_auth");
-  UPLOAD_DIR = path.join(process.cwd(), "uploads/whatsapp");
-} else if (isProduction) {
-  // Fly.io Docker: use mounted volumes
-  AUTH_DIR = "/app/whatsapp_auth";
-  UPLOAD_DIR = "/app/uploads/whatsapp";
-} else {
-  // Local development
-  AUTH_DIR = path.join(process.cwd(), "whatsapp_auth");
-  UPLOAD_DIR = path.join(process.cwd(), "uploads/whatsapp");
-}
-
-fs.ensureDirSync(AUTH_DIR);
-fs.ensureDirSync(UPLOAD_DIR);
+import { getAuthState, saveCreds, clearAuthState, initWhatsAppAuth } from "./dbAuthState.js";
 
 let sock = null;
 let reconnectAttempts = 0;
@@ -40,6 +18,9 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 let lastQR = null;
 let isConnected = false;
 let connectedUser = null;
+
+// Initialize WhatsApp auth table on startup
+initWhatsAppAuth().catch(console.error);
 
 // Helper function to extract message content (as provided by user)
 function extractMessageContent(message) {
@@ -116,8 +97,7 @@ function extractMessageContent(message) {
 
 export async function connectToWhatsApp() {
   try {
-    const authPath = AUTH_DIR;
-    const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    const { creds, keys } = await getAuthState();
     const { version, isLatest } = await fetchLatestBaileysVersion();
 
     console.log(`Using WhatsApp version: ${version.join(".")}, isLatest: ${isLatest}`);
@@ -126,8 +106,8 @@ export async function connectToWhatsApp() {
     sock = makeWASocket({
       version,
       auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, loggerWA),
+        creds,
+        keys: makeCacheableSignalKeyStore({ ...proto }, loggerWA),
       },
       logger: loggerWA,
       browser: [process.env.COMPANY_SHORT_NAME ? `${process.env.COMPANY_SHORT_NAME} ERP Bot` : "ERP Bot", "Chrome", "1.0.0"],
@@ -275,9 +255,7 @@ export async function logoutWhatsApp() {
         connectedUser = null;
         lastQR = null;
 
-        if (fs.existsSync(AUTH_DIR)) {
-            fs.removeSync(AUTH_DIR);
-        }
+        await clearAuthState();
 
         // Let it reconnect automatically via the loop or manual call
         connectToWhatsApp();
