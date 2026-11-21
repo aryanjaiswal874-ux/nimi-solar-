@@ -2,5 +2,11 @@
   "buildCommand": "cd backend/frontend && npm run build",
   "installCommand": "cd backend/frontend && npm install --legacy-peer-deps",
   "outputDirectory": "backend/frontend/dist",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
