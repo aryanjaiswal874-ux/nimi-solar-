@@ -138,6 +138,15 @@ const User = sequelize.define("User", {
         type: DataTypes.TIME,
         allowNull: true,
     },
+    // Refresh token for JWT rotation
+    refresh_token: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    refresh_token_expires: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
 });
 
 export default User;

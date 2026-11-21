@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../utils/generateToken.js";
 
 export const protect = (req, res, next) => {
     let token;
@@ -9,7 +10,12 @@ export const protect = (req, res, next) => {
     ) {
         try {
             token = req.headers.authorization.split(" ")[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = verifyAccessToken(token);
+
+            if (!decoded) {
+                return res.status(401).json({ message: "Not authorized, token invalid or expired" });
+            }
+
             req.user = decoded; // { id, role, ... }
             next();
         } catch (error) {

@@ -1,6 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -15,6 +19,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Path aliases for cleaner imports
+      "@": path.resolve(__dirname, "./src"),
       // Polyfill Node.js modules for browser
       fs: "fs",
       path: "path-browserify",
@@ -25,9 +31,11 @@ export default defineConfig({
   },
   define: {
     global: "globalThis",
+    "process.env": {},
   },
   build: {
-    outDir: "dist",
+    outDir: "/sessions/practical-lucid-albattani/mnt/outputs/frontend-dist",
+    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -44,8 +52,17 @@ export default defineConfig({
             return 'vendor';
           }
         }
-      }
+      },
+      external: ['fs', 'crypto', 'stream', 'buffer', 'path', 'os', 'util'],
     },
-    chunkSizeWarningLimit: 2000
+    chunkSizeWarningLimit: 2000,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    include: ['crypto-browserify', 'buffer', 'stream-browserify', 'process', 'path-browserify'],
+    exclude: ['fs'],
   },
 });

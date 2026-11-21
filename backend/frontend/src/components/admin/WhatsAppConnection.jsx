@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import API from "../../../api/axios";
-import { useToast } from "../../../context/ToastContext";
+import API from "@/api/axios";
+import { useToast } from "@/context/ToastContext";
 import {
   Wifi,
   WifiOff,
@@ -281,41 +281,41 @@ const WhatsAppConnection = () => {
           </div>
 
           {groups.length > 0 && (
-            <div className="space-y-3">
-              <select
-                value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              >
-                <option value="">Select a group for notifications</option>
-                {groups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name} ({group.participants} members) {group.isOwner && "👑"}
-                  </option>
-                ))}
-              </select>
+            <>
+              <div className="space-y-3">
+                <select
+                  value={selectedGroup}
+                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                >
+                  <option value="">Select a group for notifications</option>
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} ({group.participants} members) {group.isOwner && "👑"}
+                    </option>
+                  ))}
+                </select>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSaveGroup}
-                  disabled={savingGroup || !selectedGroup}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {savingGroup ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  {savingGroup ? "Saving..." : "Save as Notification Group"}
-                </button>
-                <button
-                  onClick={fetchGroupsList}
-                  disabled={groupLoading}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-50 transition-colors flex items-center gap-2"
-                >
-                  <RefreshCw size={16} /> Refresh
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveGroup}
+                    disabled={savingGroup || !selectedGroup}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {savingGroup ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {savingGroup ? "Saving..." : "Save as Notification Group"}
+                  </button>
+                  <button
+                    onClick={fetchGroupsList}
+                    disabled={groupLoading}
+                    className="px-4 py-2 border border-slate-200 text-slate-600 rounded-lg font-bold hover:bg-slate-50 transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw size={16} /> Refresh
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Test Message Section */}
-            <div className="pt-4 border-t border-slate-100 bg-slate-50/50 rounded-lg p-4 space-y-3">
+              <div className="pt-4 border-t border-slate-100 bg-slate-50/50 rounded-lg p-4 space-y-3">
               <span className="font-bold text-slate-700">Test Notification</span>
               <div className="flex gap-2">
                 <input
@@ -336,9 +336,10 @@ const WhatsAppConnection = () => {
               </div>
               <p className="text-xs text-slate-400">Sends a test message to the selected group</p>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
+    )}
 
       {/* Help Text */}
       <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-sm text-slate-600 space-y-2">

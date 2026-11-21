@@ -9,6 +9,7 @@ import moment from "moment";
 import { saveBase64Image } from "../utils/imageHandler.js";
 import { getWhatsAppStatus as checkWAStatus, logoutWhatsApp } from "../utils/waBot.js";
 import { companyName } from "../config/company.js";
+import sequelize from "../config/db.js";
 
 // --- Office Settings ---
 export const getOfficeSettings = async (req, res) => {
@@ -100,17 +101,19 @@ export const deleteHoliday = async (req, res) => {
 
 // --- Attendance ---
 export const markIn = async (req, res) => {
+    const t = await sequelize.transaction();
+
     try {
         const { location, photo, lat, lng, force, force_reason } = req.body;
         const employee_id = req.user.id;
         const today = moment().format("YYYY-MM-DD");
         const now = moment().format("HH:mm:ss");
 
-        const employee = await User.findByPk(employee_id);
+        const employee = await User.findByPk(employee_id, { transaction: t });
         const empName = employee?.full_name || "Unknown Staff";
 
         // 1. Check office timing for remark & blocking
-        const settings = await ERP_OfficeSetting.findOne();
+        const settings = await ERP_OfficeSetting.findOne({ transaction: t });
         console.log(`🔍 [ATTENDANCE SETTINGS] Group JID: ${settings?.whatsapp_group_jid || 'NONE'}`);
         let system_remark = "Punch In";
 
@@ -120,32 +123,43 @@ export const markIn = async (req, res) => {
                 from_date: { [Op.lte]: today },
                 to_date: { [Op.gte]: today },
                 is_active: true
-            }
+            },
+            transaction: t
         });
 
         if (holiday) {
-            return res.status(403).json({ 
-                message: `Today is a holiday: ${holiday.title}. Attendance cannot be marked.` 
+            await t.rollback();
+            return res.status(403).json({
+                message: `Today is a holiday: ${holiday.title}. Attendance cannot be marked.`
             });
         }
 
-        // 2. Check for existing attendance today
+        // 2. Check for existing attendance today WITH ROW LOCK to prevent race conditions
+        // Use LOCK IN SHARE MODE / FOR UPDATE to prevent concurrent writes
+        const existing = await ERP_Attendance.findOne({
+            where: { employee_id, date: today },
+            transaction: t,
+            lock: t.LOCK.UPDATE // This adds FOR UPDATE to the query
+        });
+
         let attendance;
-        const existing = await ERP_Attendance.findOne({ where: { employee_id, date: today } });
 
         if (existing) {
             // Case A: If already punched out, cannot re-punch in
             if (existing.out_time) {
+                await t.rollback();
                 return res.status(403).json({ message: "You have already completed your shift for today." });
             }
 
             // Case B: If session is already active (present + start)
             if (existing.status === 'present' && existing.current_work_status === 'start') {
+                await t.rollback();
                 return res.status(400).json({ message: "Attendance session is already active." });
             }
 
             // Case C: If on break
             if (existing.current_work_status === 'break') {
+                await t.rollback();
                 return res.status(400).json({ message: "You are currently on break. Please use the Resume option." });
             }
 
@@ -159,10 +173,11 @@ export const markIn = async (req, res) => {
                     location,
                     photo: photoPath,
                     remarks: `Absent Override | ${system_remark}`
-                });
+                }, { transaction: t });
                 attendance = existing;
             } else {
                 // Any other state (e.g. already present), return it instead of creating new
+                await t.rollback();
                 return res.status(200).json({ message: "Attendance already marked", attendance: existing });
             }
         } else {
@@ -170,16 +185,28 @@ export const markIn = async (req, res) => {
             const photoPath = saveBase64Image(photo, "attendance");
 
             // 4. Create record (only if NO existing record)
-            attendance = await ERP_Attendance.create({
-                employee_id,
-                date: today,
-                in_time: now,
-                current_work_status: "start",
-                status: "present",
-                location,
-                photo: photoPath,
-                remarks: system_remark
-            });
+            // The unique constraint on (employee_id, date) will prevent race conditions at DB level
+            try {
+                attendance = await ERP_Attendance.create({
+                    employee_id,
+                    date: today,
+                    in_time: now,
+                    current_work_status: "start",
+                    status: "present",
+                    location,
+                    photo: photoPath,
+                    remarks: system_remark
+                }, { transaction: t });
+            } catch (createError) {
+                // Handle unique constraint violation (race condition)
+                if (createError.name === 'SequelizeUniqueConstraintError' ||
+                    createError.original?.code === 'ER_DUP_ENTRY' ||
+                    createError.original?.code === '23505') {
+                    await t.rollback();
+                    return res.status(409).json({ message: "Attendance already recorded for today" });
+                }
+                throw createError;
+            }
         }
 
         // 5. Sync with Location Tracking... (Enhanced)
@@ -197,16 +224,18 @@ export const markIn = async (req, res) => {
             if (finalLat && finalLng && !isNaN(finalLat) && !isNaN(finalLng)) {
                 await ERP_LiveLocation.upsert({
                     employee_id, latitude: finalLat, longitude: finalLng, gps_status: 'on', last_update: new Date()
-                });
+                }, { transaction: t });
                 await ERP_LocationHistory.create({
                     employee_id, latitude: finalLat, longitude: finalLng, gps_status: 'on', recorded_at: new Date()
-                });
+                }, { transaction: t });
             }
         } catch (locErr) {
             console.error("Location tracking update error:", locErr.message);
         }
 
-        // 4. WhatsApp Notification
+        await t.commit();
+
+        // 4. WhatsApp Notification (after commit to not block response)
         try {
             if (settings && settings.whatsapp_group_jid) {
                 const displayDate = moment(today).format("DD MMMM YYYY (dddd)");
@@ -226,25 +255,39 @@ export const markIn = async (req, res) => {
 
         res.status(201).json({ message: "Marked in successfully", attendance });
     } catch (error) {
+        await t.rollback();
         res.status(500).json({ message: error.message });
     }
 };
 
 export const markOut = async (req, res) => {
+    const t = await sequelize.transaction();
+
     try {
         const { force, force_reason, location, lat, lng } = req.body;
         const employee_id = req.user.id;
         const today = moment().format("YYYY-MM-DD");
         const now = moment().format("HH:mm:ss");
 
-        const employee = await User.findByPk(employee_id);
+        const employee = await User.findByPk(employee_id, { transaction: t });
         const empName = employee?.full_name || "Unknown Staff";
 
-        const attendance = await ERP_Attendance.findOne({ where: { employee_id, date: today } });
-        if (!attendance) return res.status(404).json({ message: "No active session found for today" });
-        if (attendance.current_work_status === "stop") return res.status(400).json({ message: "Already marked out" });
+        const attendance = await ERP_Attendance.findOne({
+            where: { employee_id, date: today },
+            transaction: t,
+            lock: t.LOCK.UPDATE
+        });
 
-        const settings = await ERP_OfficeSetting.findOne();
+        if (!attendance) {
+            await t.rollback();
+            return res.status(404).json({ message: "No active session found for today" });
+        }
+        if (attendance.current_work_status === "stop") {
+            await t.rollback();
+            return res.status(400).json({ message: "Already marked out" });
+        }
+
+        const settings = await ERP_OfficeSetting.findOne({ transaction: t });
         let exit_remark = "Punch Out";
 
         const duration = moment.duration(moment(now, "HH:mm:ss").diff(moment(attendance.in_time, "HH:mm:ss")));
@@ -257,7 +300,7 @@ export const markOut = async (req, res) => {
             current_work_status: "stop",
             total_work_hours,
             remarks: attendance.remarks ? `${attendance.remarks} | Out: ${exit_remark}` : exit_remark
-        });
+        }, { transaction: t });
 
         // 3. Sync with Location Tracking (Enhanced for Punch-Out)
         try {
@@ -273,14 +316,16 @@ export const markOut = async (req, res) => {
             if (finalLat && finalLng && !isNaN(finalLat) && !isNaN(finalLng)) {
                 await ERP_LiveLocation.upsert({
                     employee_id, latitude: finalLat, longitude: finalLng, gps_status: 'on', last_update: new Date()
-                });
+                }, { transaction: t });
                 await ERP_LocationHistory.create({
                     employee_id, latitude: finalLat, longitude: finalLng, gps_status: 'on', recorded_at: new Date()
-                });
+                }, { transaction: t });
             }
         } catch (locErr) {
             console.error("Location tracking update error (Out):", locErr.message);
         }
+
+        await t.commit();
 
         // WhatsApp Notification - Enhanced
         try {
@@ -298,26 +343,42 @@ export const markOut = async (req, res) => {
 
         res.status(200).json({ message: "Marked out successfully", attendance });
     } catch (error) {
+        await t.rollback();
         res.status(500).json({ message: error.message });
     }
 };
 
 export const takeBreak = async (req, res) => {
+    const t = await sequelize.transaction();
+
     try {
         const { reason } = req.body;
         const employee_id = req.user.id;
         const today = moment().format("YYYY-MM-DD");
         const now = moment().format("HH:mm:ss");
 
-        const attendance = await ERP_Attendance.findOne({ where: { employee_id, date: today } });
-        if (!attendance) return res.status(404).json({ message: "No active attendance found today." });
-        if (attendance.current_work_status !== 'start') return res.status(400).json({ message: "Must be working to take a break." });
+        const attendance = await ERP_Attendance.findOne({
+            where: { employee_id, date: today },
+            transaction: t,
+            lock: t.LOCK.UPDATE
+        });
+
+        if (!attendance) {
+            await t.rollback();
+            return res.status(404).json({ message: "No active attendance found today." });
+        }
+        if (attendance.current_work_status !== 'start') {
+            await t.rollback();
+            return res.status(400).json({ message: "Must be working to take a break." });
+        }
 
         await attendance.update({
             current_work_status: 'break',
             // Pre-simplifying remarks to avoid truncation error from excessive concatenation
             remarks: attendance.remarks?.substring(0, 50) + ` | Break: ${reason || 'N/A'}`
-        });
+        }, { transaction: t });
+
+        await t.commit();
 
         // WhatsApp Notification
         try {
@@ -333,24 +394,40 @@ export const takeBreak = async (req, res) => {
 
         res.status(200).json({ message: "Break started", attendance });
     } catch (error) {
+        await t.rollback();
         res.status(500).json({ message: error.message });
     }
 };
 
 export const resumeWork = async (req, res) => {
+    const t = await sequelize.transaction();
+
     try {
         const employee_id = req.user.id;
         const today = moment().format("YYYY-MM-DD");
         const now = moment().format("HH:mm:ss");
 
-        const attendance = await ERP_Attendance.findOne({ where: { employee_id, date: today } });
-        if (!attendance) return res.status(404).json({ message: "No attendance found today." });
-        if (attendance.current_work_status !== 'break') return res.status(400).json({ message: "You are not on break." });
+        const attendance = await ERP_Attendance.findOne({
+            where: { employee_id, date: today },
+            transaction: t,
+            lock: t.LOCK.UPDATE
+        });
+
+        if (!attendance) {
+            await t.rollback();
+            return res.status(404).json({ message: "No attendance found today." });
+        }
+        if (attendance.current_work_status !== 'break') {
+            await t.rollback();
+            return res.status(400).json({ message: "You are not on break." });
+        }
 
         await attendance.update({
             current_work_status: 'start',
             remarks: attendance.remarks?.substring(0, 100) + ` | Resumed: ${now}`
-        });
+        }, { transaction: t });
+
+        await t.commit();
 
         // WhatsApp Notification
         try {
@@ -366,6 +443,7 @@ export const resumeWork = async (req, res) => {
 
         res.status(200).json({ message: "Work resumed", attendance });
     } catch (error) {
+        await t.rollback();
         res.status(500).json({ message: error.message });
     }
 };

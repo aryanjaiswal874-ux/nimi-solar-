@@ -182,10 +182,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
             toast.error("Mobile number is required");
             return;
         }
-        if (!formData.employee_id?.trim()) {
-            toast.error("Employee ID is required");
-            return;
-        }
+        // Employee ID is now optional - will be auto-generated if not provided
         // Password is optional - if not provided, a random one will be generated
 
         setLoading(true);
@@ -339,7 +336,7 @@ const EditUserModal = ({ user, currentUser, isOpen, onClose, onSave, onCreate })
                                     <InputField label="Full Name" name="full_name" placeholder="Suraj Kumar" required />
                                     <InputField label="Email Address" name="email" type="email" placeholder="example@mail.com" required />
                                     <InputField label="Mobile Number" name="mobile" placeholder="+91 0000000000" required />
-                                    <InputField label="Employee ID" name="employee_id" placeholder="EMP001" required />
+                                    <InputField label="Employee ID (Auto-generated if empty)" name="employee_id" placeholder="EMP001" />
                                     {user?.isNew && (
                                         <InputField label="Password" name="password" type="password" placeholder="Set password" required />
                                     )}

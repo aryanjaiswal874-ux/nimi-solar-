@@ -56,6 +56,13 @@ const ERP_Attendance = sequelize.define("ERP_Attendance", {
     timestamps: true,
     createdAt: "created_on",
     updatedAt: "updated_on",
+    indexes: [
+        {
+            name: 'emp_date_unique',
+            unique: true,
+            fields: ['employee_id', 'date'],
+        },
+    ],
 });
 
 export default ERP_Attendance;

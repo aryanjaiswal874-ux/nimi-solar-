@@ -145,11 +145,17 @@ const UserManagement = () => {
     try {
       const response = await API.post("/admin/users", formData);
       if (showSuccess) showSuccess("Worker created successfully");
+
+      // Show generated password if provided
+      if (response.data.generatedPassword) {
+        alert(`Worker created successfully!\n\nGenerated Password: ${response.data.generatedPassword}\n\nPlease share this password with the worker securely.`);
+      }
+
       fetchUsers();
       setEditUser(null);
     } catch (error) {
       console.error(error);
-      if (showError) showError("Failed to create worker");
+      if (showError) showError(error.response?.data?.message || "Failed to create worker");
     }
   };
 

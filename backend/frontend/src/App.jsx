@@ -71,10 +71,22 @@ const ProtectedRoute = ({ children, adminOnly = false, superAdminOnly = false, o
   return children;
 };
 
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
+
 const RootRedirect = () => {
   const { user, loading } = useAuth();
   if (loading) return <DashboardLoader />;
-  if (!user) return <Navigate to="/auth/login" replace />;
+  if (!user || !user.token || isTokenExpired(user.token)) {
+    return <Navigate to="/auth/login" replace />;
+  }
   if (["admin", "super_admin", "employee"].includes(user.role)) {
     return <Navigate to="/admin/dashboard" replace />;
   }

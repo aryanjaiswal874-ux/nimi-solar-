@@ -10,7 +10,8 @@ import {
     getPublicUsers,
     superAdminSetup,
     superAdminSetupStatus,
-    logoutUser
+    logoutUser,
+    refreshToken
 } from "../controllers/authController.js";
 import {
     getCompanies,
@@ -199,6 +200,30 @@ router.post("/change-password", protect, changePassword);
  *         description: Logged out successfully
  */
 router.post("/logout", protect, logoutUser);
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token using refresh token
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken: { type: string }
+ *     responses:
+ *       200:
+ *         description: New access token generated
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post("/refresh", refreshToken);
 
 /**
  * @swagger

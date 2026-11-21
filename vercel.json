@@ -1,5 +1,6 @@
 {
-  "buildCommand": "NODE_OPTIONS='--max-old-space-size=8192' npm run build",
-  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "cd backend/frontend && npm run build",
+  "installCommand": "cd backend/frontend && npm install --legacy-peer-deps",
+  "outputDirectory": "backend/frontend/dist",
   "framework": "vite"
 }

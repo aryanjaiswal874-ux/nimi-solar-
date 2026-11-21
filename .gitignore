@@ -1,2 +1,73 @@
+# Vercel
 .vercel
-.env*
+
+# Environment files - DO NOT COMMIT
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# WhatsApp Service
+whatsapp-service/node_modules/
+whatsapp-service/auth_info/
+whatsapp-service/.env
+
+# Backend
+backend/node_modules/
+backend/.env
+backend/whatsapp_auth/
+backend/uploads/
+backend/dist/
+backend/*.log
+backend/tmp_img_*.png
+backend/test-*.js
+backend/debug-*.js
+backend/check-*.js
+backend/applyAlter.js
+backend/fix-*.js
+backend/seed-*.js
+backend/setup-*.js
+backend/*.md
+
+# Frontend
+backend/frontend/dist/
+backend/frontend/.env
+backend/frontend/.env.local
+backend/frontend/.env.production
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.sqlite
+*.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/

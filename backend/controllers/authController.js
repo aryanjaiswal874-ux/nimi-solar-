@@ -3,7 +3,7 @@ import asyncHandler from "express-async-handler";
 import fs from "fs";
 import path from "path";
 import { User } from "../models/index.js";
-import generateToken from "../utils/generateToken.js";
+import { generateTokens, verifyAccessToken, generateAccessToken } from "../utils/generateToken.js";
 import { generatePassword } from "../utils/generatePassword.js";
 import { transporter } from "../config/mailer.js";
 import { companyName } from "../config/company.js";
@@ -85,11 +85,19 @@ export const registerUser = async (req, res) => {
         }
 
         if (user) {
+            const { accessToken, refreshToken, refreshTokenExpires } = generateTokens(user.id, user.role);
+
+            // Store refresh token in database
+            user.refresh_token = refreshToken;
+            user.refresh_token_expires = refreshTokenExpires;
+            await user.save();
+
             res.status(201).json({
                 _id: user.id,
                 full_name: user.full_name,
                 email: user.email,
-                token: generateToken(user.id, user.role),
+                token: accessToken,
+                refreshToken: refreshToken,
                 role: user.role,
                 profile_photo: user.profile_photo,
             });
@@ -142,6 +150,13 @@ export const loginUser = async (req, res) => {
                 return res.status(403).json({ message: "Admins must login with email, not Employee ID" });
             }
 
+            const { accessToken, refreshToken, refreshTokenExpires } = generateTokens(user.id, user.role);
+
+            // Store refresh token in database
+            user.refresh_token = refreshToken;
+            user.refresh_token_expires = refreshTokenExpires;
+            await user.save();
+
             res.json({
                 _id: user.id,
                 full_name: user.full_name,
@@ -150,7 +165,8 @@ export const loginUser = async (req, res) => {
                 designation: user.designation,
                 employee_id: user.employee_id,
                 profile_photo: user.profile_photo,
-                token: generateToken(user.id, user.role),
+                token: accessToken,
+                refreshToken: refreshToken,
             });
         } else {
             res.status(401).json({ message: "Invalid credentials" });
@@ -212,13 +228,14 @@ export const updateUserProfile = async (req, res) => {
             const updatedUser = await user.save();
 
             const fullUser = await User.findByPk(updatedUser.id);
+            const accessToken = generateAccessToken(fullUser.id, fullUser.role);
 
             res.json({
                 _id: fullUser.id,
                 full_name: fullUser.full_name,
                 email: fullUser.email,
                 role: fullUser.role,
-                token: generateToken(fullUser.id, fullUser.role),
+                token: accessToken,
                 // Return updated fields too just in case
                 designation: fullUser.designation,
                 state: fullUser.state,
@@ -510,11 +527,79 @@ export const superAdminSetupStatus = async (req, res) => {
  */
 export const logoutUser = async (req, res) => {
     try {
-        // With JWT, logout is primarily client-side (remove token from storage)
-        // This endpoint exists for API consistency and potential future token blacklisting
+        // Invalidate refresh token in database
+        const user = await User.findByPk(req.user.id);
+        if (user) {
+            user.refresh_token = null;
+            user.refresh_token_expires = null;
+            await user.save();
+        }
         res.json({ message: "Logged out successfully" });
     } catch (error) {
         console.error("❌ Logout Error:", error);
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+/**
+ * @desc    Refresh access token using refresh token
+ * @route   POST /api/auth/refresh
+ * @access  Public (requires valid refresh token)
+ */
+export const refreshToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(400).json({ message: "Refresh token is required" });
+        }
+
+        // Find user with this refresh token
+        const user = await User.findOne({
+            where: { refresh_token: refreshToken }
+        });
+
+        if (!user) {
+            return res.status(401).json({ message: "Invalid refresh token" });
+        }
+
+        // Check if refresh token is expired
+        if (user.refresh_token_expires && new Date() > user.refresh_token_expires) {
+            // Clear expired refresh token
+            user.refresh_token = null;
+            user.refresh_token_expires = null;
+            await user.save();
+            return res.status(401).json({ message: "Refresh token expired. Please login again." });
+        }
+
+        // Check if user is still active
+        if (user.is_active === false) {
+            return res.status(403).json({ message: "Your account has been disabled. Please contact the administrator." });
+        }
+
+        // Generate new tokens
+        const { accessToken, refreshToken: newRefreshToken, refreshTokenExpires } = generateTokens(user.id, user.role);
+
+        // Update refresh token in database (rotation)
+        user.refresh_token = newRefreshToken;
+        user.refresh_token_expires = refreshTokenExpires;
+        await user.save();
+
+        res.json({
+            token: accessToken,
+            refreshToken: newRefreshToken,
+            user: {
+                _id: user.id,
+                full_name: user.full_name,
+                email: user.email,
+                role: user.role,
+                designation: user.designation,
+                employee_id: user.employee_id,
+                profile_photo: user.profile_photo,
+            }
+        });
+    } catch (error) {
+        console.error("❌ Refresh Token Error:", error);
         res.status(500).json({ message: "Server Error", error: error.message });
     }
 };

@@ -218,130 +218,215 @@ export const updateUser = async (req, res) => {
     }
 };
 
-// @desc    Create new user
+// @desc    Create new user (worker)
 // @route   POST /api/admin/users
 // @access  Private/Admin
 export const createUser = async (req, res) => {
+    const t = await sequelize.transaction();
+
     try {
-        const {
-            full_name, email, mobile, employee_id, role, designation,
-            is_active, smartflo_agent_id, smartflo_caller_id, call_access,
-            state, city, pincode, address, gross_salary,
-            joining_date, upi_id, work_mode, age, gender,
-            qualification, bank_details, office_in_time, office_out_time,
-            week_offs, sunday_in_time, sunday_out_time, password
-        } = req.body;
+        // Handle both FormData (multipart) and JSON requests
+        const getField = (field) => {
+            // For FormData, fields come as strings
+            // For JSON, they come as their native types
+            const val = req.body[field];
+            return val;
+        };
+
+        const getBooleanField = (field) => {
+            const val = getField(field);
+            return val === 'true' || val === true;
+        };
+
+        const getIntField = (field) => {
+            const val = getField(field);
+            if (val === '' || val === null || val === undefined) return null;
+            const parsed = parseInt(val, 10);
+            return isNaN(parsed) ? null : parsed;
+        };
+
+        const getJSONField = (field) => {
+            const val = getField(field);
+            if (!val) return null;
+            if (typeof val === 'object') return val;
+            if (typeof val === 'string' && val.trim() !== '') {
+                try {
+                    return JSON.parse(val);
+                } catch (e) {
+                    return val;
+                }
+            }
+            return null;
+        };
+
+        // Extract fields (handles both FormData and JSON)
+        const full_name = getField('full_name');
+        const email = getField('email');
+        const mobile = getField('mobile');
+        let employee_id = getField('employee_id');
+        const role = getField('role') || 'employee';
+        const designation = getField('designation');
+        const is_active = getBooleanField('is_active');
+        const smartflo_agent_id = getField('smartflo_agent_id');
+        const smartflo_caller_id = getField('smartflo_caller_id');
+        const call_access = getBooleanField('call_access');
+        const state = getField('state');
+        const city = getField('city');
+        const pincode = getField('pincode');
+        const address = getJSONField('address');
+        const gross_salary = getIntField('gross_salary');
+        const joining_date = getField('joining_date');
+        const upi_id = getField('upi_id');
+        const work_mode = getField('work_mode');
+        const age = getIntField('age');
+        const gender = getField('gender');
+        const qualification = getField('qualification');
+        const bank_details = getJSONField('bank_details');
+        const office_in_time = getField('office_in_time');
+        const office_out_time = getField('office_out_time');
+        const week_offs = getJSONField('week_offs');
+        const sunday_in_time = getField('sunday_in_time');
+        const sunday_out_time = getField('sunday_out_time');
+        const password = getField('password');
 
         // Validation
-        if (!full_name || !email || !mobile || !employee_id) {
+        if (!full_name || !email || !mobile) {
+            await t.rollback();
             return res.status(400).json({
-                message: "Full name, email, mobile, and employee_id are required"
+                message: "Full name, email, and mobile are required"
             });
         }
 
-        // Standardize mobile number (same as registerUser)
+        // Standardize mobile number
         let standardizedMobile = mobile.toString().replace(/\D/g, '');
         if (standardizedMobile.length > 10) {
             standardizedMobile = standardizedMobile.slice(-10);
         }
 
+        // Auto-generate employee_id if not provided
+        if (!employee_id) {
+            // Find the highest existing employee_id number
+            const lastUser = await User.findOne({
+                where: { employee_id: { [Op.ne]: null } },
+                order: [['employee_id', 'DESC']],
+                transaction: t
+            });
+
+            let nextNum = 1;
+            if (lastUser && lastUser.employee_id) {
+                const match = lastUser.employee_id.match(/EMP(\d+)/i);
+                if (match) {
+                    nextNum = parseInt(match[1], 10) + 1;
+                }
+            }
+            employee_id = `EMP${String(nextNum).padStart(3, '0')}`;
+        }
+
         // Check if email already exists
-        const emailExists = await User.findOne({ where: { email: email.toLowerCase() } });
+        const emailExists = await User.findOne({
+            where: { email: email.toLowerCase() },
+            transaction: t
+        });
         if (emailExists) {
+            await t.rollback();
             return res.status(400).json({ message: "User already exists with this email" });
         }
 
         // Check if mobile already exists
-        const mobileExists = await User.findOne({ where: { mobile: standardizedMobile } });
+        const mobileExists = await User.findOne({
+            where: { mobile: standardizedMobile },
+            transaction: t
+        });
         if (mobileExists) {
+            await t.rollback();
             return res.status(400).json({ message: "User already exists with this mobile number" });
         }
 
         // Check if employee_id already exists
-        const empIdExists = await User.findOne({ where: { employee_id } });
+        const empIdExists = await User.findOne({
+            where: { employee_id },
+            transaction: t
+        });
         if (empIdExists) {
+            await t.rollback();
             return res.status(400).json({ message: "User already exists with this employee ID" });
         }
 
-        // Hash password - generate random password if not provided (required for worker login)
+        // Handle password - generate random if not provided
         let hashedPassword;
+        let plainPassword = null;
+
         if (password && password.trim() !== '') {
             const salt = await bcrypt.genSalt(10);
             hashedPassword = await bcrypt.hash(password, salt);
         } else {
-            // Generate a random password for workers who don't provide one
+            // Generate a random password for workers
             const { generatePassword } = await import("../utils/generatePassword.js");
-            const randomPassword = generatePassword(10);
+            plainPassword = generatePassword(10);
             const salt = await bcrypt.genSalt(10);
-            hashedPassword = await bcrypt.hash(randomPassword, salt);
+            hashedPassword = await bcrypt.hash(plainPassword, salt);
         }
 
-        // Parse JSON fields
-        let parsedAddress = null;
-        if (address) {
-            try {
-                parsedAddress = typeof address === 'string' ? JSON.parse(address) : address;
-            } catch (e) {
-                parsedAddress = address;
-            }
+        // Handle profile photo if uploaded
+        let profile_photo = null;
+        if (req.file) {
+            profile_photo = `/uploads/${req.file.filename}`;
         }
 
-        let parsedBankDetails = null;
-        if (bank_details) {
-            try {
-                parsedBankDetails = typeof bank_details === 'string' ? JSON.parse(bank_details) : bank_details;
-            } catch (e) {
-                parsedBankDetails = bank_details;
-            }
-        }
-
-        let parsedWeekOffs = null;
-        if (week_offs) {
-            try {
-                parsedWeekOffs = typeof week_offs === 'string' ? JSON.parse(week_offs) : week_offs;
-            } catch (e) {
-                parsedWeekOffs = week_offs;
-            }
-        }
-
-        // Create user
+        // Create user within transaction
         const user = await User.create({
             full_name,
             email: email.toLowerCase(),
             mobile: standardizedMobile,
             employee_id,
-            role: role || 'employee',
+            role,
             designation,
             is_active: is_active !== false,
             smartflo_agent_id,
             smartflo_caller_id,
-            call_access: call_access === 'true' || call_access === true,
+            call_access,
             state,
             city,
             pincode,
-            address: parsedAddress,
-            gross_salary: gross_salary ? parseInt(gross_salary) : null,
+            address,
+            gross_salary,
             joining_date,
             upi_id,
             work_mode,
-            age: age ? parseInt(age) : null,
+            age,
             gender,
             qualification,
-            bank_details: parsedBankDetails,
+            bank_details,
             office_in_time,
             office_out_time,
-            week_offs: parsedWeekOffs,
+            week_offs,
             sunday_in_time,
             sunday_out_time,
-            password: hashedPassword
-        });
+            password: hashedPassword,
+            profile_photo
+        }, { transaction: t });
 
-        // Return user without password
+        await t.commit();
+
+        // Return user without password, but include generated password if auto-generated
         const newUser = user.toJSON();
         delete newUser.password;
+        delete newUser.refresh_token;
+        delete newUser.refresh_token_expires;
 
-        res.status(201).json({ message: "User created successfully", user: newUser });
+        const response = {
+            message: "Worker created successfully",
+            user: newUser
+        };
+
+        // Include generated password in response (only for auto-generated)
+        if (plainPassword) {
+            response.generatedPassword = plainPassword;
+        }
+
+        res.status(201).json(response);
     } catch (error) {
+        await t.rollback();
         console.error("❌ Create User Error:", error);
         res.status(500).json({ message: "Error creating user", error: error.message });
     }
