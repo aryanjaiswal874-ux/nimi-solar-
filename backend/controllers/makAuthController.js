@@ -1,7 +1,7 @@
 import asyncHandler from "express-async-handler";
 
 import { MAKMember } from "../models/index.js";
-import generateToken from "../utils/generateToken.js";
+import { generateTokens } from "../utils/generateToken.js";
 import { sendWhatsAppText } from "../utils/whatsappService.js";
 import { getOTPWhatsAppTemplate } from "../utils/makMessageTemplates.js";
 
@@ -35,7 +35,7 @@ export const loginMAK = asyncHandler(async (req, res) => {
                 fullName: admin.fullName,
                 phone: admin.phone,
                 role: admin.role,
-                token: generateToken(admin.id, admin.role),
+                token: generateTokens(admin.id, admin.role).accessToken,
             });
             return;
         }
@@ -60,7 +60,7 @@ export const loginMAK = asyncHandler(async (req, res) => {
                         role: member.role,
                         photo: member.photo,
                         membershipType: member.membershipType,
-                        token: generateToken(member.id, member.role),
+                        token: generateTokens(member.id, member.role).accessToken,
                     });
                 } else {
                     return res.status(401).json({ message: "Invalid or expired OTP" });
@@ -83,7 +83,7 @@ export const loginMAK = asyncHandler(async (req, res) => {
                     role: member.role,
                     photo: member.photo,
                     membershipType: member.membershipType,
-                    token: generateToken(member.id, member.role),
+                    token: generateTokens(member.id, member.role).accessToken,
                 });
             }
         }
