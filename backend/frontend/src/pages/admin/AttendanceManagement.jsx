@@ -207,15 +207,25 @@ const AttendanceManagement = () => {
 
   const fetchAddressFromGoogle = async (lat, lng) => {
     try {
-      const apiKey = import.meta.env.VITE_GOOGLE_KEY;
-      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`);
+      // Use FREE OpenStreetMap Nominatim instead of Google Maps
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'SOLAR-ERP/1.0 (admin@yourdomain.com)' // Required by Nominatim
+          }
+        }
+      );
+
       const data = await response.json();
-      if (data.status === "OK" && data.results.length > 0) {
-        setAddress(data.results[0].formatted_address);
+
+      if (data && data.display_name) {
+        setAddress(data.display_name);
       } else {
         setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
       }
     } catch (error) {
+      console.error('Geocoding error:', error);
       setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
     }
   };
