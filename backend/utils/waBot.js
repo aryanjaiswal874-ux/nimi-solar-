@@ -56,7 +56,14 @@ export async function connectToWhatsApp() {
         lastQR = qr;
         connectionState = "connecting";
         console.log("\n📱📱📱 SCAN THIS QR CODE WITH WHATSAPP 📱📱📱");
-        qrcode(qr, { small: true });
+        try {
+          // Try to render QR code in terminal (may fail on headless environments like Render)
+          qrcode(qr, { small: true });
+        } catch (qrError) {
+          // Fallback for headless environments (Render, Docker, etc.)
+          console.log("[QR Code unavailable in terminal - use the API endpoint to get QR as base64 image]");
+          console.log(`[QR String: ${qr.substring(0, 50)}...]`);
+        }
         console.log("\n📱 Scan the QR code above with your WhatsApp app\n");
       }
 
