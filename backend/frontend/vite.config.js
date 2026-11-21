@@ -34,7 +34,7 @@ export default defineConfig({
     "process.env": {},
   },
   build: {
-    outDir: "/sessions/practical-lucid-albattani/mnt/outputs/frontend-dist",
+    outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
       output: {
