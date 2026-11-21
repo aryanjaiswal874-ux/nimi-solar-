@@ -9,7 +9,7 @@ import { Boom } from "@hapi/boom";
 import pino from "pino";
 import path from "path";
 import fs from "fs-extra";
-import qrcode from "qrcode";
+import { generate as qrcodeGenerate } from "qrcode";
 
 let sock = null;
 let reconnectAttempts = 0;
@@ -56,7 +56,7 @@ export async function connectToWhatsApp() {
         lastQR = qr;
         connectionState = "connecting";
         console.log("\n📱📱📱 SCAN THIS QR CODE WITH WHATSAPP 📱📱📱");
-        qrcode.generate(qr, { small: true });
+        qrcodeGenerate(qr, { small: true });
         console.log("\n📱 Scan the QR code above with your WhatsApp app\n");
       }
 
